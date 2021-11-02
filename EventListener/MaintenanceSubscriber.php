@@ -14,12 +14,12 @@ namespace MauticPlugin\MauticRecommenderBundle\EventListener;
 use Doctrine\DBAL\Connection;
 use Mautic\CoreBundle\CoreEvents;
 use Mautic\CoreBundle\Event\MaintenanceEvent;
-use Mautic\CoreBundle\EventListener\CommonSubscriber;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
  * Class MaintenanceSubscriber.
  */
-class MaintenanceSubscriber extends CommonSubscriber
+class MaintenanceSubscriber implements EventSubscriberInterface
 {
     /**
      * @var Connection

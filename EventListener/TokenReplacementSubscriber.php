@@ -12,7 +12,6 @@
 namespace MauticPlugin\MauticRecommenderBundle\EventListener;
 
 use Mautic\CoreBundle\Event\TokenReplacementEvent;
-use Mautic\CoreBundle\EventListener\CommonSubscriber;
 use Mautic\DynamicContentBundle\DynamicContentEvents;
 use Mautic\DynamicContentBundle\Model\DynamicContentModel;
 use Mautic\NotificationBundle\NotificationEvents;
@@ -20,8 +19,9 @@ use Mautic\PluginBundle\Helper\IntegrationHelper;
 use MauticPlugin\MauticFocusBundle\FocusEvents;
 use MauticPlugin\MauticFocusBundle\Model\FocusModel;
 use MauticPlugin\MauticRecommenderBundle\Service\RecommenderTokenReplacer;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
-class TokenReplacementSubscriber extends CommonSubscriber
+class TokenReplacementSubscriber implements EventSubscriberInterface
 {
     /**
      * @var RecommenderTokenReplacer

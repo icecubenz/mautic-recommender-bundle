@@ -11,7 +11,6 @@
 
 namespace MauticPlugin\MauticRecommenderBundle\EventListener;
 
-use Mautic\CoreBundle\EventListener\CommonSubscriber;
 use Mautic\CoreBundle\Helper\BuilderTokenHelper;
 use Mautic\LeadBundle\LeadEvent;
 use Mautic\LeadBundle\Tracker\ContactTracker;
@@ -20,11 +19,11 @@ use Mautic\PageBundle\PageEvents;
 use Mautic\PluginBundle\Helper\IntegrationHelper;
 use MauticPlugin\MauticRecommenderBundle\Helper\RecommenderHelper;
 use MauticPlugin\MauticRecommenderBundle\Service\RecommenderTokenReplacer;
-
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 /**
  * Class PageSubscriber.
  */
-class PageSubscriber extends CommonSubscriber
+class PageSubscriber implements EventSubscriberInterface
 {
     /**
      * @var RecommenderTokenReplacer

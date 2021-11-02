@@ -11,17 +11,17 @@
 
 namespace MauticPlugin\MauticRecommenderBundle\EventListener;
 
-use Mautic\CoreBundle\EventListener\CommonSubscriber;
 use Mautic\LeadBundle\Event\LeadTimelineEvent;
 use Mautic\LeadBundle\LeadEvents;
 use Mautic\PluginBundle\Helper\IntegrationHelper;
 use MauticPlugin\MauticRecommenderBundle\Entity\EventLog;
 use MauticPlugin\MauticRecommenderBundle\Entity\EventLogRepository;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
  * Class LeadSubscriber.
  */
-class LeadSubscriber extends CommonSubscriber
+class LeadSubscriber implements EventSubscriberInterface
 {
     /**
      * @var integrationHelper

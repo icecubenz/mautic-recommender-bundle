@@ -11,11 +11,12 @@
 
 namespace MauticPlugin\MauticRecommenderBundle\Filter\EventListener;
 
-use Mautic\CoreBundle\EventListener\CommonSubscriber;
+
 use Mautic\LeadBundle\Event\LeadListDictionaryGeneratedEvent;
 use Mautic\LeadBundle\LeadEvents;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
-class OperatorsSubscriber extends CommonSubscriber
+class OperatorsSubscriber implements EventSubscriberInterface
 {
     /**
      * OperatorsSubscriber constructor.

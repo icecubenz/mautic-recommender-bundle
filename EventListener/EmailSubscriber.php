@@ -11,7 +11,6 @@
 
 namespace MauticPlugin\MauticRecommenderBundle\EventListener;
 
-use Mautic\CoreBundle\EventListener\CommonSubscriber;
 use Mautic\CoreBundle\Helper\BuilderTokenHelper;
 use Mautic\EmailBundle\EmailEvents;
 use Mautic\EmailBundle\Event\EmailBuilderEvent;
@@ -19,11 +18,12 @@ use Mautic\EmailBundle\Event\EmailSendEvent;
 use Mautic\PluginBundle\Helper\IntegrationHelper;
 use MauticPlugin\MauticRecommenderBundle\Helper\RecommenderHelper;
 use MauticPlugin\MauticRecommenderBundle\Service\RecommenderTokenReplacer;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
  * Class EmailSubscriber.
  */
-class EmailSubscriber extends CommonSubscriber
+class EmailSubscriber implements EventSubscriberInterface
 {
     /**
      * @var RecommenderHelper

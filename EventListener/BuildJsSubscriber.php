@@ -13,15 +13,15 @@ namespace MauticPlugin\MauticRecommenderBundle\EventListener;
 
 use Mautic\CoreBundle\CoreEvents;
 use Mautic\CoreBundle\Event\BuildJsEvent;
-use Mautic\CoreBundle\EventListener\CommonSubscriber;
 use Mautic\CoreBundle\Helper\CoreParametersHelper;
 use Mautic\PluginBundle\Helper\IntegrationHelper;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
  * Class BuildJsSubscriber.
  */
-class BuildJsSubscriber extends CommonSubscriber
+class BuildJsSubscriber implements EventSubscriberInterface
 {
     /**
      * @var CoreParametersHelper

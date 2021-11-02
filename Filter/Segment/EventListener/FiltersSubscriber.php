@@ -12,7 +12,6 @@
 namespace MauticPlugin\MauticRecommenderBundle\Filter\Segment\EventListener;
 
 use Mautic\CoreBundle\Event\BuildJsEvent;
-use Mautic\CoreBundle\EventListener\CommonSubscriber;
 use Mautic\LeadBundle\Event\LeadListFilteringEvent;
 use Mautic\LeadBundle\Event\LeadListFiltersChoicesEvent;
 use Mautic\LeadBundle\LeadEvents;
@@ -20,8 +19,9 @@ use Mautic\PluginBundle\Helper\IntegrationHelper;
 use MauticPlugin\MauticRecommenderBundle\Filter\Recommender\Choices;
 use MauticPlugin\MauticRecommenderBundle\Filter\Segment\Decorator\Decorator;
 use MauticPlugin\MauticRecommenderBundle\Filter\Segment\FilterFactory;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
-class FiltersSubscriber extends CommonSubscriber
+class FiltersSubscriber implements EventSubscriberInterface
 {
     /**
      * @var FilterFactory
