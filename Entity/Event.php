@@ -44,14 +44,21 @@ class Event
      */
     protected $dateAdded;
 
+    /**
+     * @var int
+     */
+    protected $numberOfLogs;
+
+    /**
+     * @var string|null
+     */
+    protected $lastDateAdded;
+
     public function __construct()
     {
         $this->setDateAdded(new \DateTime());
     }
 
-    /**
-     * @param ORM\ClassMetadata $metadata
-     */
     public static function loadMetadata(ORM\ClassMetadata $metadata)
     {
         $builder = new ClassMetadataBuilder($metadata);
@@ -64,6 +71,7 @@ class Event
 
         $builder->createField('type', Type::STRING)
             ->columnName('type')
+            ->length(20)
             ->nullable()
             ->build();
     }
@@ -199,5 +207,41 @@ class Event
 
     public function getTypeTranslations()
     {
+    }
+
+    /**
+     * @return int
+     */
+    public function getNumberOfLogs()
+    {
+        return $this->numberOfLogs;
+    }
+
+    /**
+     * @param $numberOfLogs
+     *
+     * @return $this
+     */
+    public function setNumberOfLogs($numberOfLogs)
+    {
+        $this->numberOfLogs = $numberOfLogs;
+
+        return $this;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getLastDateAdded(): ?string
+    {
+        return $this->lastDateAdded;
+    }
+
+    /**
+     * @param string|null $lastDateAdded
+     */
+    public function setLastDateAdded(?string $lastDateAdded): void
+    {
+        $this->lastDateAdded = $lastDateAdded;
     }
 }

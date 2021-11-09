@@ -32,7 +32,7 @@ class Recommender
     protected $name;
 
     /** @var array */
-    protected $properties;
+    protected $properties = [];
 
     /**
      * @var string
@@ -60,14 +60,16 @@ class Recommender
      */
     private $numberOfItems = 9;
 
+    /**
+     * @var \Mautic\CategoryBundle\Entity\Category
+     **/
+    private $category;
+
     public function __construct()
     {
         $this->setDateAdded(new \DateTime());
     }
 
-    /**
-     * @param ORM\ClassMetadata $metadata
-     */
     public static function loadMetadata(ORM\ClassMetadata $metadata)
     {
         $builder = new ClassMetadataBuilder($metadata);
@@ -75,10 +77,11 @@ class Recommender
             ->setCustomRepositoryClass(RecommenderRepository::class)
             ->addId()
             ->addNamedField('name', Type::STRING, 'name')
-            ->addNamedField('filter', Type::STRING, 'filter')
-            ->addNamedField('filterTarget', Type::STRING, 'filter_target')
-            ->addNullableField('properties', 'json_array')
+            ->addNamedField('filter', Type::STRING, 'filter', true)
+            ->addNamedField('filterTarget', Type::STRING, 'filter_target', true)
             ->addNamedField('dateAdded', Type::DATETIME, 'date_added');
+
+        $builder->addCategory();
 
         $builder->createField('numberOfItems', Type::INTEGER)
             ->columnName('number_of_items')
@@ -87,6 +90,11 @@ class Recommender
 
         $builder->createField('tableOrder', Type::TARRAY)
             ->columnName('table_order')
+            ->nullable()
+            ->build();
+
+        $builder->createField('properties', Type::TARRAY)
+            ->columnName('properties')
             ->nullable()
             ->build();
 
@@ -115,6 +123,7 @@ class Recommender
                     'template',
                     'dateAdded',
                     'numberOfItems',
+                    'category',
                 ]
             )
             ->build();
@@ -312,5 +321,25 @@ class Recommender
     public function getFilterTarget()
     {
         return $this->filterTarget;
+    }
+
+    /**
+     * @return \Mautic\CategoryBundle\Entity\Category
+     */
+    public function getCategory()
+    {
+        return $this->category;
+    }
+
+    /**
+     * @param \Mautic\CategoryBundle\Entity\Category $category
+     *
+     * @return $this
+     */
+    public function setCategory($category)
+    {
+        $this->category = $category;
+
+        return $this;
     }
 }

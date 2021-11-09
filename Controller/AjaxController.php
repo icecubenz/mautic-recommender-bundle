@@ -12,18 +12,20 @@
 namespace MauticPlugin\MauticRecommenderBundle\Controller;
 
 use Mautic\CoreBundle\Controller\AjaxController as CommonAjaxController;
+use Mautic\CoreBundle\Controller\AjaxLookupControllerTrait;
 use Mautic\CoreBundle\Helper\InputHelper;
-use MauticPlugin\MauticFocusBundle\Model\FocusModel;
 use MauticPlugin\MauticRecommenderBundle\Entity\RecommenderTemplate;
 use MauticPlugin\MauticRecommenderBundle\Form\Type\RecommenderTableOrderType;
+use MauticPlugin\MauticRecommenderBundle\Model\RecommenderModel;
+use MauticPlugin\MauticRecommenderBundle\Service\RecommenderToken;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 
 class AjaxController extends CommonAjaxController
 {
+    use AjaxLookupControllerTrait;
+
     /**
-     * @param Request $request
-     *
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
     protected function generatePreviewAction(Request $request)
@@ -33,10 +35,8 @@ class AjaxController extends CommonAjaxController
 
         if (isset($recommender['recommender_templates'])) {
             $recommenderEntity = new RecommenderTemplate();
-            $accessor          = PropertyAccess::createPropertyAccessor();
             $recommenderArrays = InputHelper::_($recommender['recommender_templates']);
             foreach ($recommenderArrays as $key=>$recommenderArray) {
-                //   $accessor->setValue($recommenderEntity, $key, $recommenderArray);
                 $setter = 'set'.ucfirst($key);
                 if (method_exists($recommenderEntity, $setter)) {
                     $recommenderEntity->$setter($recommenderArray);
@@ -55,19 +55,53 @@ class AjaxController extends CommonAjaxController
         return $this->sendJsonResponse($data);
     }
 
+    public function dwcAction(Request $request)
+    {
+        /** @var RecommenderModel $recommenderModel */
+        $recommenderModel = $this->getModel('recommender.recommender');
+        if (!$recommender = $recommenderModel->getEntity($request->get('objectId'))) {
+            return $this->notFound();
+        }
+
+        /** @var RecommenderToken $recommenderToken */
+        $recommenderToken = $this->get('mautic.recommender.service.token');
+        $recommenderToken->setRecommender($recommender);
+        $recommenderToken->setId($request->get('objectId'));
+        if ($request->get('filterTokens')) {
+            $filterTokens = json_decode(base64_decode($request->get('filterTokens')), true);
+            if (is_array($filterTokens)) {
+                foreach ($filterTokens as $token=>$replace) {
+                    $recommenderToken->addFilterToken($token, $replace);
+                }
+            }
+        }
+
+        $recommenderTokenReplace = $this->get('mautic.recommender.service.token.generator');
+
+        return $this->sendJsonResponse(
+            [
+                'success' => 1,
+                'content' => $recommenderTokenReplace->getContentByToken($recommenderToken),
+            ]
+        );
+    }
+
     public function listavailablefunctionsAction(Request $request)
     {
         $column = $request->request->get('column', $request->query->get('column'));
         //$tableOrderForm = $this->get();
         $fields = $this->get('mautic.recommender.filter.fields.recommender')->getSelectOptions();
 
-        $form = $this->get('form.factory')->createNamedBuilder('recommender', 'form', null, ['auto_initialize'=>false])->add(
+        $form = $this->get('form.factory')->createNamedBuilder(
+            'recommender',
+            'form',
+            null,
+            ['auto_initialize' => false]
+        )->add(
             'tableOrder',
             RecommenderTableOrderType::class,
             ['data' => ['column' => $column], 'fields' => $fields]
         )->getForm();
-
-        //return $this->get('mautic.recommender.contact.search')->delegateForm($objectId, $this);
 
         $data['content'] = $this->get('mautic.helper.templating')->getTemplating()->render(
             'MauticRecommenderBundle:Recommender:form.function.html.php',

@@ -31,18 +31,12 @@ class FilterType extends AbstractType
 
     /**
      * DwcEntryFiltersType constructor.
-     *
-     * @param TranslatorInterface $translator
      */
     public function __construct(TranslatorInterface $translator)
     {
         $this->translator = $translator;
     }
 
-    /**
-     * @param FormBuilderInterface $builder
-     * @param array                $options
-     */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         $builder->add(
@@ -85,8 +79,6 @@ class FilterType extends AbstractType
     }
 
     /**
-     * @param OptionsResolver $resolver
-     *
      * @throws \Symfony\Component\OptionsResolver\Exception\AccessException
      */
     public function configureOptions(OptionsResolver $resolver)
@@ -113,8 +105,7 @@ class FilterType extends AbstractType
         $view->vars['fields'] = $options['fields'];
     }
 
-    public function getName()
+    public function getBlockPrefix()
     {
-        'recommender_filter';
     }
 }

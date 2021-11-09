@@ -48,14 +48,16 @@ class Property
      */
     protected $dateAdded;
 
+    /**
+     * @var string
+     */
+    protected $propertyType;
+
     public function __construct()
     {
         $this->setDateAdded(new \DateTime());
     }
 
-    /**
-     * @param ORM\ClassMetadata $metadata
-     */
     public static function loadMetadata(ORM\ClassMetadata $metadata)
     {
         $builder = new ClassMetadataBuilder($metadata);
@@ -67,6 +69,12 @@ class Property
             ->addNamedField('type', 'string', 'type')
             ->addNamedField('dateAdded', Type::DATETIME, 'date_added');
         $builder->addNullableField('segmentFilter', Type::BOOLEAN, 'segment_filter');
+
+        $builder->createField('propertyType', Type::STRING)
+            ->columnName('property_type')
+            ->length(20)
+            ->nullable()
+            ->build();
     }
 
     /**
@@ -83,6 +91,7 @@ class Property
                     'name',
                     'type',
                     'dateAdded',
+                    'propertyType',
                 ]
             )
             ->build();
@@ -165,8 +174,6 @@ class Property
     }
 
     /**
-     * @param \DateTime $dateAdded
-     *
      * @return Item
      */
     public function setDateAdded(\DateTime $dateAdded)
@@ -185,8 +192,6 @@ class Property
     }
 
     /**
-     * @param bool $segmentFilter
-     *
      * @return Property
      */
     public function setSegmentFilter(bool $segmentFilter)
@@ -197,10 +202,30 @@ class Property
     }
 
     /**
-     * @return boolean
+     * @return bool
      */
     public function isSegmentFilter()
     {
         return $this->segmentFilter;
+    }
+
+    /**
+     * @param string $propertyType
+     *
+     * @return Property
+     */
+    public function setPropertyType($propertyType)
+    {
+        $this->propertyType = $propertyType;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPropertyType()
+    {
+        return $this->propertyType;
     }
 }

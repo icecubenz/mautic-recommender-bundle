@@ -50,6 +50,11 @@ class ContactSearch
     /** @var RecommenderTokenReplacer|object */
     private $recommenderTokenReplacer;
 
+    /**
+     * @var RecommenderGenerator|object|Container
+     */
+    private $recommenderGenerator;
+
     public function __construct(
         Container $container
     ) {
@@ -59,6 +64,7 @@ class ContactSearch
         $this->cookies                  = $this->request->cookies;
         $this->cookieHelper             = $this->container->get('mautic.helper.cookie');
         $this->recommenderTokenReplacer = $this->container->get('mautic.recommender.service.replacer');
+        $this->recommenderGenerator     = $this->container->get('mautic.recommender.service.token.generator');
     }
 
     /**
@@ -93,7 +99,7 @@ class ContactSearch
             ],
             [
                 'action'  => $this->getAction(),
-                'choices' => $this->getChoices(),
+                'choices' => array_flip($this->getChoices()),
             ]
         );
     }
@@ -113,8 +119,7 @@ class ContactSearch
     }
 
     /**
-     * @param                  $objectId
-     * @param CommonController $controller
+     * @param $objectId
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
@@ -129,8 +134,7 @@ class ContactSearch
     }
 
     /**
-     * @param                  $objectId
-     * @param CommonController $controller
+     * @param $objectId
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\Response
      */
@@ -149,12 +153,16 @@ class ContactSearch
     /**
      * @return array
      */
-    private function getViewParameters()
+    public function getViewParameters($objectId = null)
     {
+        if ($objectId) {
+            $this->objectId = $objectId;
+        }
         $this->recommenderTokenReplacer->getRecommenderToken()->setUserId($this->getContact());
         $this->recommenderTokenReplacer->getRecommenderToken()->setContent('{recommender='.$this->objectId.'}');
+        $this->recommenderTokenReplacer->getRecommenderToken()->setId($this->objectId);
 
-        $content = $this->recommenderTokenReplacer->getReplacedContent();
+        $content = $this->recommenderGenerator->getContentByToken($this->recommenderTokenReplacer->getRecommenderToken());
 
         $this->cookieHelper->setCookie(
             $this->getCookieVar(),
@@ -190,7 +198,7 @@ class ContactSearch
     /**
      * Get unserialized content from cookie.
      *
-     * @param null|string $key
+     * @param string|null $key
      *
      * @return array|string
      */

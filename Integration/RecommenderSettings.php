@@ -1,6 +1,5 @@
 <?php
 
-
 /*
  * @copyright   2019 Mautic Contributors. All rights reserved
  * @author      Mautic
@@ -16,8 +15,11 @@ use Mautic\CoreBundle\Helper\ArrayHelper;
 use Mautic\CoreBundle\Helper\CoreParametersHelper;
 use Mautic\PluginBundle\Helper\IntegrationHelper;
 use Mautic\PluginBundle\Integration\AbstractIntegration;
+use MauticPlugin\MauticRecommenderBundle\Enum\PropertyTypeEnum;
 use MauticPlugin\MauticRecommenderBundle\Integration\DTO\RecombeeSettings;
 use MauticPlugin\MauticRecommenderBundle\Logger\DebugLogger;
+use MauticPlugin\MauticRecommenderBundle\Model\RecommenderEventModel;
+use MauticPlugin\MauticRecommenderBundle\Model\RecommenderPropertyModel;
 
 class RecommenderSettings
 {
@@ -27,31 +29,23 @@ class RecommenderSettings
     private $integrationHelper;
 
     /**
-     * @var CoreParametersHelper
-     */
-    private $coreParametersHelper;
-
-    /**
-     * @var RecombeeSettings
-     */
-    private $recombeeSettings;
-
-    /**
      * @var array
      */
     private $settings;
 
     /**
-     * EcrSettings constructor.
-     *
-     * @param IntegrationHelper    $integrationHelper
-     * @param CoreParametersHelper $coreParametersHelper
+     * @var RecommenderPropertyModel
      */
-    public function __construct(IntegrationHelper $integrationHelper, CoreParametersHelper $coreParametersHelper)
+    private $propertyModel;
+
+    /**
+     * EcrSettings constructor.
+     */
+    public function __construct(IntegrationHelper $integrationHelper, CoreParametersHelper $coreParametersHelper, RecommenderEventModel $eventModel, RecommenderPropertyModel $propertyModel)
     {
         $this->integrationHelper    = $integrationHelper;
-        $this->coreParametersHelper = $coreParametersHelper;
         $this->settings             = $this->getIntegrationSettings('Recommender');
+        $this->propertyModel        = $propertyModel;
     }
 
     public function isEnabled()
@@ -78,8 +72,25 @@ class RecommenderSettings
     }
 
     /**
-     * @param DebugLogger $logger
+     * @return int|void
      */
+    public function getPropertyCategoryId()
+    {
+        if ($property = $this->propertyModel->getRepository()->findOneBy(['name' => 'category'])) {
+            return $property->getId();
+        }
+    }
+
+    /**
+     * @return int|void
+     */
+    public function getPropertyPriceId()
+    {
+        if ($property = $this->propertyModel->getRepository()->findOneBy(['name' => PropertyTypeEnum::PRICE])) {
+            return $property->getId();
+        }
+    }
+
     public function initiateDebugLogger(DebugLogger $logger): void
     {
         // Yes it's a hack to prevent from having to pass the logger as a dependency into dozens of classes

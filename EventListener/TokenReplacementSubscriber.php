@@ -12,8 +12,10 @@
 namespace MauticPlugin\MauticRecommenderBundle\EventListener;
 
 use Mautic\CoreBundle\Event\TokenReplacementEvent;
+use Mautic\CoreBundle\EventListener\CommonSubscriber;
 use Mautic\DynamicContentBundle\DynamicContentEvents;
 use Mautic\DynamicContentBundle\Model\DynamicContentModel;
+use Mautic\LeadBundle\Tracker\ContactTracker;
 use Mautic\NotificationBundle\NotificationEvents;
 use Mautic\PluginBundle\Helper\IntegrationHelper;
 use MauticPlugin\MauticFocusBundle\FocusEvents;
@@ -29,35 +31,25 @@ class TokenReplacementSubscriber implements EventSubscriberInterface
     private $recommenderTokenReplacer;
 
     /**
-     * @var DynamicContentModel
-     */
-    private $dynamicContentModel;
-
-    /**
-     * @var FocusModel
-     */
-    private $focusModel;
-
-    /**
      * @var IntegrationHelper
      */
     protected $integrationHelper;
 
     /**
-     * @param RecommenderTokenReplacer $recommenderTokenReplacer
-     * @param DynamicContentModel      $dynamicContentModel
-     * @param FocusModel               $focusModel
+     * @var ContactTracker
      */
+    private $contactTracker;
+
     public function __construct(
         RecommenderTokenReplacer $recommenderTokenReplacer,
         DynamicContentModel $dynamicContentModel,
         FocusModel $focusModel,
-        IntegrationHelper $integrationHelper
+        IntegrationHelper $integrationHelper,
+        ContactTracker $contactTracker
     ) {
         $this->recommenderTokenReplacer = $recommenderTokenReplacer;
-        $this->dynamicContentModel      = $dynamicContentModel;
-        $this->focusModel               = $focusModel;
         $this->integrationHelper        = $integrationHelper;
+        $this->contactTracker           = $contactTracker;
     }
 
     /**
@@ -72,13 +64,10 @@ class TokenReplacementSubscriber implements EventSubscriberInterface
         ];
     }
 
-    /**
-     * @param TokenReplacementEvent $event
-     */
     public function onDynamicContentTokenReplacement(TokenReplacementEvent $event)
     {
         $integration = $this->integrationHelper->getIntegrationObject('Recommender');
-        if (!$integration || $integration->getIntegrationSettings()->getIsPublished() === false) {
+        if (!$integration || false === $integration->getIntegrationSettings()->getIsPublished()) {
             return;
         }
 
@@ -88,21 +77,27 @@ class TokenReplacementSubscriber implements EventSubscriberInterface
         $event->setContent($this->recommenderTokenReplacer->replaceTokensFromContent($event->getContent()));
     }
 
-    /**
-     * @param TokenReplacementEvent $event
-     */
     public function onFocusTokenReplacement(TokenReplacementEvent $event)
     {
         $integration = $this->integrationHelper->getIntegrationObject('Recommender');
-        if (!$integration || $integration->getIntegrationSettings()->getIsPublished() === false) {
+        if (!$integration || false === $integration->getIntegrationSettings()->getIsPublished()) {
             return;
         }
 
         $clickthrough = $event->getClickthrough();
-        if (empty($clickthrough['focus_id']) || empty($clickthrough['lead'])) {
+
+        if (empty($clickthrough['focus_id'])) {
             return;
         }
-        $leadId       = $clickthrough['lead'];
+
+        if (!empty($clickthrough['lead'])) {
+            $leadId       = $clickthrough['lead'];
+        } elseif ($contact = $this->contactTracker->getContact()) {
+            $leadId = $contact->getId();
+        } else {
+            return;
+        }
+
         $this->recommenderTokenReplacer->getRecommenderToken()->setUserId($leadId);
         $this->recommenderTokenReplacer->getRecommenderToken()->setContent($event->getContent());
         $event->setContent($this->recommenderTokenReplacer->getReplacedContent());

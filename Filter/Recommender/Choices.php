@@ -19,7 +19,7 @@ use Symfony\Component\Translation\TranslatorInterface;
 
 class Choices
 {
-    const ALLOWED_TABLES = ['recommender_event_log', 'recommender_event_log_property_value', 'recommender_item', 'recommender_item_property_value'];
+    const ALLOWED_TABLES = ['recommenders', 'recommender_event_log', 'recommender_event_log_property_value', 'recommender_item', 'recommender_item_property_value'];
 
     /**
      * @var Fields
@@ -40,10 +40,6 @@ class Choices
 
     /**
      * SegmentChoices constructor.
-     *
-     * @param Fields              $fields
-     * @param ListModel           $listModel
-     * @param TranslatorInterface $translator
      */
     public function __construct(Fields $fields, ListModel $listModel, TranslatorInterface $translator)
     {
@@ -53,8 +49,7 @@ class Choices
     }
 
     /**
-     * @param LeadListFiltersChoicesEvent $event
-     * @param                             $object
+     * @param $object
      */
     public function addChoicesToEvent(LeadListFiltersChoicesEvent $event, $object)
     {
@@ -73,13 +68,15 @@ class Choices
      *
      * @return array
      */
-    public function addChoices()
+    public function addChoices($object = null)
     {
-        $choices = $this->getChoices();
+        $choices = $this->getchoices();
         foreach (self::ALLOWED_TABLES as $table) {
             if (isset($choices[$table])) {
                 foreach ($choices[$table] as $key=>$options) {
-                    $this->fieldChoices[$table][$key] =  $options;
+                    if (null === $object || ('recommender' == $object && $options['recommender'])) {
+                        $this->fieldChoices[$table][$key] =  $options;
+                    }
                 }
             }
         }
@@ -126,16 +123,20 @@ class Choices
                 $choices[$table][$key] = [
                     'properties' => $properties,
                     'operators'  => $this->listModel->getOperatorsForFieldType(
-                        $properties['type']
+                        isset($field['operators']) ? $field['operators'] : $properties['type']
                     ),
+                    'recommender'=> isset($field['decorator']['recommender']),
                 ];
 
                 switch ($table) {
+                    case 'recommenders':
+                        $choices[$table][$key]['label'] = $this->translator->trans($field['name']);
+                        break;
                     case 'recommender_item':
                         $choices[$table][$key]['label'] = $this->translator->trans('mautic.plugin.recommender.form.item').' '.$this->translator->trans($field['name']);
                         break;
                     case 'recommender_item_property_value':
-                        $choices[$table][$key]['label'] =  $this->translator->trans($field['name']);
+                        $choices[$table][$key]['label'] =  $this->translator->trans('mautic.plugin.recommender.form.item').' '.$this->translator->trans($field['name']);
                         break;
                     default:
                         $choices[$table][$key]['label'] = $this->translator->trans('mautic.plugin.recommender.form.event').' '.$this->translator->trans($field['name']);

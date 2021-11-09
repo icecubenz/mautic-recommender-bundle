@@ -13,14 +13,13 @@ namespace MauticPlugin\MauticRecommenderBundle\EventListener;
 
 use Mautic\CoreBundle\CoreEvents;
 use Mautic\CoreBundle\Event\BuildJsEvent;
+use Mautic\CoreBundle\EventListener\CommonSubscriber;
 use Mautic\CoreBundle\Helper\CoreParametersHelper;
 use Mautic\PluginBundle\Helper\IntegrationHelper;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\RouterInterface;
 
-/**
- * Class BuildJsSubscriber.
- */
 class BuildJsSubscriber implements EventSubscriberInterface
 {
     /**
@@ -34,16 +33,21 @@ class BuildJsSubscriber implements EventSubscriberInterface
     protected $integrationHelper;
 
     /**
+     * @var RouterInterface
+     */
+    private $router;
+
+    /**
      * BuildJsSubscriber constructor.
-     *
-     * @param CoreParametersHelper $coreParametersHelper
      */
     public function __construct(
         CoreParametersHelper $coreParametersHelper,
-        IntegrationHelper $integrationHelper
+        IntegrationHelper $integrationHelper,
+        RouterInterface $router
     ) {
         $this->coreParametersHelper = $coreParametersHelper;
         $this->integrationHelper    = $integrationHelper;
+        $this->router               = $router;
     }
 
     /**
@@ -54,22 +58,20 @@ class BuildJsSubscriber implements EventSubscriberInterface
         return [
             CoreEvents::BUILD_MAUTIC_JS => [
                 ['onBuildJsTop', 300],
+                ['onDynamicRecommenderJs', 400],
             ],
         ];
     }
 
-    /**
-     * @param BuildJsEvent $event
-     */
     public function onBuildJsTop(BuildJsEvent $event)
     {
         $integration = $this->integrationHelper->getIntegrationObject('Recommender');
-        if (!$integration || $integration->getIntegrationSettings()->getIsPublished() === false) {
+        if (!$integration || false === $integration->getIntegrationSettings()->getIsPublished()) {
             return;
         }
 
         $url        = $this->router->generate('mautic_recommender_send_event', [], UrlGeneratorInterface::ABSOLUTE_URL);
-        $eventLabel = $this->coreParametersHelper->getParameter('eventLabel');
+        $eventLabel = $this->coreParametersHelper->get('eventLabel');
         //basic js
         $js = <<<JS
         
@@ -112,8 +114,10 @@ class BuildJsSubscriber implements EventSubscriberInterface
         }
     }
     
-    // Process events right after mtc.js loaded
-    MauticJS.recommenderEvent();
+    MauticJS.onFirstEventDelivery(function() {
+         // Process events right after mtc.js loaded
+        MauticJS.recommenderEvent();
+    });
 
     // Process events after new are added
     document.addEventListener('eventAddedToMauticQueue', function(e) {
@@ -124,5 +128,51 @@ class BuildJsSubscriber implements EventSubscriberInterface
         
 JS;
         $event->appendJs($js, 'RecommenderTemplate');
+    }
+
+    public function onDynamicRecommenderJs(BuildJsEvent $event)
+    {
+        $recommenderUrl = $this->router->generate('mautic_recommender_dwc', ['objectId' => 'slotNamePlaceholder'], UrlGeneratorInterface::ABSOLUTE_URL);
+
+        $js = <<<JS
+        
+MauticJS.replaceRecommender = function (params) {
+    params = params || {};
+
+    var recommenderSlots = document.querySelectorAll('[data-slot="recommender"]');
+    if (recommenderSlots.length) {
+        MauticJS.iterateCollection(recommenderSlots)(function(node, i) {
+            var recommenderId = node.dataset['recommenderId'];
+            if ('undefined' === typeof recommenderId) {
+                node.innerHTML = '';
+                return;
+            }
+            
+            var url = '{$recommenderUrl}'.replace('slotNamePlaceholder', recommenderId);
+            
+           var recommenderFilterTokens = node.dataset['filterTokens'];
+           if ('undefined' !== typeof recommenderFilterTokens) {
+               params['filterTokens'] = btoa(recommenderFilterTokens);
+           }
+
+            MauticJS.makeCORSRequest('GET', url, params, function(response, xhr) {
+                
+                if (response.content) {
+                    var recommenderContent = response.content;
+                    node.innerHTML = recommenderContent;
+                    
+                    if (response.id && response.sid) {
+                        MauticJS.setTrackedContact(response);
+                    }
+               
+                }
+            });
+        });
+    }
+};
+
+MauticJS.beforeFirstEventDelivery(MauticJS.replaceRecommender);
+JS;
+        $event->appendJs($js, 'Mautic Recommender Content');
     }
 }

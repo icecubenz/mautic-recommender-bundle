@@ -13,6 +13,7 @@ namespace MauticPlugin\MauticRecommenderBundle\Service;
 
 use Mautic\CampaignBundle\Model\CampaignModel;
 use Mautic\LeadBundle\Model\LeadModel;
+use Mautic\LeadBundle\Tracker\ContactTracker;
 use Mautic\PluginBundle\Helper\IntegrationHelper;
 use MauticPlugin\MauticRecommenderBundle\Entity\Recommender;
 use MauticPlugin\MauticRecommenderBundle\Entity\RecommenderTemplate;
@@ -49,17 +50,23 @@ class RecommenderToken
     private $integrationHelper;
 
     /**
-     * RecommenderToken constructor.
-     *
-     * @param RecommenderModel  $recommenderModel
-     * @param LeadModel         $leadModel
-     * @param IntegrationHelper $integrationHelper
+     * @var array
      */
-    public function __construct(RecommenderModel $recommenderModel, LeadModel $leadModel, IntegrationHelper $integrationHelper)
+    private $filterTokens = [];
+
+    /**
+     * @var ContactTracker
+     */
+    private $contactTracker;
+
+    /**
+     * RecommenderToken constructor.
+     */
+    public function __construct(RecommenderModel $recommenderModel, IntegrationHelper $integrationHelper, ContactTracker $contactTracker)
     {
-        $this->leadModel         = $leadModel;
         $this->recommenderModel  = $recommenderModel;
         $this->integrationHelper = $integrationHelper;
+        $this->contactTracker    = $contactTracker;
     }
 
     /**
@@ -68,7 +75,7 @@ class RecommenderToken
     public function getUserId()
     {
         if (!$this->userId) {
-            if ($lead = $this->leadModel->getCurrentLead()) {
+            if ($lead = $this->contactTracker->getContact()) {
                 return $lead->getId();
             }
         }
@@ -152,5 +159,52 @@ class RecommenderToken
     public function getSettings()
     {
         return $this->integrationHelper->getIntegrationObject('Recommender')->getIntegrationSettings()->getFeatureSettings();
+    }
+
+    /**
+     * @param $token
+     * @param $value
+     */
+    public function addFilterToken($token, $value)
+    {
+        $this->filterTokens[$token] = $value;
+    }
+
+    /**
+     * @return array
+     */
+    public function getFilterTokens()
+    {
+        return $this->filterTokens;
+    }
+
+    /**
+     * @param array $filterTokens
+     */
+    public function setFilterTokens($filterTokens)
+    {
+        $this->filterTokens = $filterTokens;
+    }
+
+    public function reset()
+    {
+        $this->filterTokens = [];
+    }
+
+    public function getFilters(): array
+    {
+        $filters = $this->getRecommender()->getFilters();
+
+        foreach ($this->filterTokens as $token => $value) {
+            foreach ($filters as $key => $filter) {
+                if (isset($filter['filter'])) {
+                    if (!is_array($filter['filter'])) {
+                        $filters[$key]['filter'] = str_replace($token, $value, $filter['filter']);
+                    }
+                }
+            }
+        }
+
+        return $filters;
     }
 }

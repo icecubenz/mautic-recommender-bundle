@@ -12,6 +12,7 @@
 namespace MauticPlugin\MauticRecommenderBundle\Form\Type;
 
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
@@ -20,15 +21,11 @@ use Symfony\Component\Validator\Constraints\NotBlank;
  */
 class RecommenderTemplateType extends AbstractType
 {
-    /**
-     * @param FormBuilderInterface $builder
-     * @param array                $options
-     */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         $builder->add(
             'header',
-            'textarea',
+            TextareaType::class,
             [
                 'label'    => 'mautic.plugin.recommender.template',
                 'required' => false,
@@ -41,20 +38,20 @@ class RecommenderTemplateType extends AbstractType
 
         $builder->add(
             'body',
-            'textarea',
+            TextareaType::class,
             [
                 'label'       => 'mautic.plugin.recommender.template',
                 'required'    => true,
                 'attr'        => [
                     'class' => 'recommender-template',
-                    'rows'  => 6,
+                    'rows'  => 10,
                 ],
             ]
         );
 
         $builder->add(
             'footer',
-            'textarea',
+            TextareaType::class,
             [
                 'label'    => 'mautic.plugin.recommender.template',
                 'required' => false,
@@ -69,7 +66,7 @@ class RecommenderTemplateType extends AbstractType
     /**
      * @return string
      */
-    public function getName()
+    public function getBlockPrefix()
     {
         return 'recommender_template';
     }

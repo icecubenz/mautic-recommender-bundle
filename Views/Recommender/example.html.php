@@ -9,15 +9,13 @@
  * @license     GNU/GPLv3 http://www.gnu.org/licenses/gpl-3.0.html
  */
 ?>
-<?php if ($tmpl == 'index'): ?>
-<hr>
+<?php if ('index' == $tmpl): ?>
     <h3 class="col-xs-12"><?php echo $view['translator']->trans(
             'mautic.plugin.recommender.form.testing_area'
         ); ?>
     </h3>
-<br style="clear:both">
 <div class="contact-form">
-    <div class="col-xs-4">
+    <div class="col-xs-6">
         <?php echo $view->render(
             'MauticCoreBundle:Helper:search.html.php',
             [
@@ -34,7 +32,12 @@
         <div class="col-xs-4"><?php echo $view['form']->form($form); ?></div>
         <div class="col-xs-12">        
             <div class="collapse" id="recommender-sql-query">
-                <textarea style="width:100%" rows="5" readonly><?php echo $sqlQuery; ?></textarea>
+                <textarea style="width:100%" rows="5" readonly>
+                    <?php foreach ($sqlQuery as $query) {
+            echo $query.'
+                        ';
+        } ?>
+                </textarea>
             </div>
             <!-- lead detail collapseable toggler -->
             <div class="hr-expand nm">
@@ -61,7 +64,7 @@
             <?php endif; ?>
             <hr>
             <?php echo $cnt; ?></div>
-        <?php if ($tmpl == 'index'): ?>
+        <?php if ('index' == $tmpl): ?>
     </div>
 </div>
 <?php endif; ?>

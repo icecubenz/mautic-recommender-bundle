@@ -32,8 +32,6 @@ class Options
 
     /**
      * Options constructor.
-     *
-     * @param Client $client
      */
     public function __construct(Client $client)
     {
@@ -58,11 +56,12 @@ class Options
                 case 'contactId':
                     if (!isset($entities['userId'])) {
                         $addOptions['lead'] = $this->clientModel->getCurrentContact();
+                        unset($options['contactId']);
                     }
                     break;
             }
 
-            if ($entity == 'itemId' && !isset($options[$entity])) {
+            if ('itemId' == $entity && !isset($options[$entity])) {
                 throw new \Exception('Item ID param not exist');
                 // die();
             }

@@ -29,18 +29,12 @@ class ListTemplatesType extends AbstractType
 
     /**
      * TemplatesListType constructor.
-     *
-     * @param TemplateModel $templateModel
      */
     public function __construct(TemplateModel $templateModel)
     {
         $this->templateModel = $templateModel;
     }
 
-    /**
-     * @param FormBuilderInterface $builder
-     * @param array                $options
-     */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
     }
@@ -59,7 +53,7 @@ class ListTemplatesType extends AbstractType
                     $choices[$event->getId()] = $event->getName();
                 }
 
-                return $choices;
+                return array_flip($choices);
             },
             'attr'        => [
                 'class' => 'form-control',
@@ -68,7 +62,7 @@ class ListTemplatesType extends AbstractType
             'expanded'    => false,
             'multiple'    => false,
             'required'    => false,
-            'empty_value' => '',
+            'placeholder' => '',
         ]);
     }
 

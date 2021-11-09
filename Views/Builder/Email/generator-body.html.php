@@ -48,7 +48,7 @@ $style['recommender-image'] = ['display: block', 'max-width: 100%'];
 if (!empty($recommender->getProperties()['itemImageStyle'])):
     $style['recommender-image'][] = $recommender->getProperties()['itemImageStyle'];
 endif;
-if (!empty($recommender->getProperties()['columns']) && $recommender->getProperties()['columns'] == 12):
+if (!empty($recommender->getProperties()['columns']) && 12 == $recommender->getProperties()['columns']):
     $style['recommender-image'][] = 'margin-right: 20px';
     $style['recommender-image'][] = 'float: left';
 endif;
@@ -97,6 +97,7 @@ endif;
 if (!empty($recommender->getProperties()['itemNameStyle'])):
     $style['recommender-name'][] =  $recommender->getProperties()['itemNameStyle'];
 endif;
+$style['recommender-name'][] = 'font-weight:'.!empty($recommender->getProperties()['itemNameBold']) ? 'bold' : 'normal';
 $style['recommender-name'][] = '';
 $style['recommender-name']   = implode('; ', $style['recommender-name']);
 
@@ -114,9 +115,9 @@ endif;
 if (!empty($recommender->getProperties()['itemPriceSize'])):
     $style['recommender-price'][] =  'font-size:'.$recommender->getProperties()['itemPriceSize'];
 endif;
-if (!empty($recommender->getProperties()['itemPriceBold'])):
-    $style['recommender-price'][] =  'font-weight:bold';
-endif;
+
+$style['recommender-price'][] = 'font-weight:'.!empty($recommender->getProperties()['itemPriceBold']) ? 'bold' : 'normal';
+
 if (!empty($recommender->getProperties()['itemPriceStyle'])):
     $style['recommender-price'][] =  $recommender->getProperties()['itemPriceStyle'];
 endif;
@@ -138,7 +139,7 @@ $style['recommender-price-old']   = implode('; ', $style['recommender-price-old'
 
 if (isset($index)) {
     $i = $index;
-    if ($i == 0 || ($i % $recommender->getProperties()['columns']) === 0) {
+    if (0 == $i || 0 === ($i % $recommender->getProperties()['columns'])) {
         if ($i > 0) {
             ?>
             </tr>

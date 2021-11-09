@@ -18,36 +18,26 @@ use Symfony\Component\PropertyAccess\PropertyAccessor;
 
 class Client
 {
-    private $propertyAccessor;
-
     /**
      * @var RecommenderClientModel
      */
     private $clientModel;
-
     private $options;
     private $settings = [];
     private $optionsResolver;
-
     private $endpoint;
-
-    /** @var RecommenderToken */
-    private $token;
 
     /**
      * Client constructor.
-     *
-     * @param RecommenderClientModel $clientModel
      */
     public function __construct(RecommenderClientModel $clientModel)
     {
-        $this->propertyAccessor = new PropertyAccessor();
+        new PropertyAccessor();
         $this->clientModel      = $clientModel;
     }
 
     /**
      * @param string $endpoint
-     * @param array  $options
      *
      * @throws ApiEndpointNotFoundException
      */
@@ -69,7 +59,6 @@ class Client
     public function display(RecommenderToken $recommenderToken)
     {
         $this->endpoint        = $recommenderToken->getType();
-        $this->token           = $recommenderToken;
         $this->options         = $recommenderToken->getOptions();
         $this->optionsResolver = new Options($this);
         $class                 = 'MauticPlugin\MauticRecommenderBundle\Api\Client\Request\\'.$this->endpoint;

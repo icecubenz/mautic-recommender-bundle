@@ -12,6 +12,7 @@
 namespace MauticPlugin\MauticRecommenderBundle\Filter\Segment\EventListener;
 
 use Mautic\CoreBundle\Event\BuildJsEvent;
+use Mautic\CoreBundle\EventListener\CommonSubscriber;
 use Mautic\LeadBundle\Event\LeadListFilteringEvent;
 use Mautic\LeadBundle\Event\LeadListFiltersChoicesEvent;
 use Mautic\LeadBundle\LeadEvents;
@@ -19,7 +20,9 @@ use Mautic\PluginBundle\Helper\IntegrationHelper;
 use MauticPlugin\MauticRecommenderBundle\Filter\Recommender\Choices;
 use MauticPlugin\MauticRecommenderBundle\Filter\Segment\Decorator\Decorator;
 use MauticPlugin\MauticRecommenderBundle\Filter\Segment\FilterFactory;
+use MauticPlugin\MauticRecommenderBundle\Helper\SqlQuery;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 class FiltersSubscriber implements EventSubscriberInterface
 {
@@ -44,22 +47,25 @@ class FiltersSubscriber implements EventSubscriberInterface
     protected $integrationHelper;
 
     /**
+     * @var \Symfony\Component\HttpFoundation\Request|null
+     */
+    private $request;
+
+    /**
      * FiltersSubscriber constructor.
-     *
-     * @param FilterFactory $segmentFilterFactory
-     * @param Choices       $choices
-     * @param Decorator     $decorator
      */
     public function __construct(
         FilterFactory $segmentFilterFactory,
         Choices $choices,
         Decorator $decorator,
-        IntegrationHelper $integrationHelper
+        IntegrationHelper $integrationHelper,
+        RequestStack $requestStack
     ) {
         $this->filterFactory     = $segmentFilterFactory;
         $this->choices           = $choices;
         $this->decorator         = $decorator;
         $this->integrationHelper = $integrationHelper;
+        $this->request           = $requestStack->getCurrentRequest();
     }
 
     /**
@@ -78,13 +84,10 @@ class FiltersSubscriber implements EventSubscriberInterface
         ];
     }
 
-    /**
-     * @param LeadListFilteringEvent $event
-     */
     public function onListFiltersFiltering(LeadListFilteringEvent $event)
     {
         $integration = $this->integrationHelper->getIntegrationObject('Recommender');
-        if (!$integration || $integration->getIntegrationSettings()->getIsPublished() === false) {
+        if (!$integration || false === $integration->getIntegrationSettings()->getIsPublished()) {
             return;
         }
 
@@ -103,12 +106,12 @@ class FiltersSubscriber implements EventSubscriberInterface
     public function onListFiltersGenerate(LeadListFiltersChoicesEvent $event)
     {
         $integration = $this->integrationHelper->getIntegrationObject('Recommender');
-        if (!$integration || $integration->getIntegrationSettings()->getIsPublished() === false) {
+        if (!$integration || false === $integration->getIntegrationSettings()->getIsPublished()) {
             return;
         }
 
         if (in_array($this->request->attributes->get('_route'), ['mautic_segment_action', 'mautic_recommender_action'])) {
-            $this->choices->addChoicesToEvent($event, 'recommender_event');
+            $this->choices->addChoicesToEvent($event, $this->request->attributes->get('_route'));
         }
     }
 }

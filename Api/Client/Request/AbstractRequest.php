@@ -11,7 +11,6 @@
 
 namespace MauticPlugin\MauticRecommenderBundle\Api\Client\Request;
 
-use Mautic\CampaignBundle\Model\EventModel;
 use MauticPlugin\MauticRecommenderBundle\Api\Client\Client;
 use MauticPlugin\MauticRecommenderBundle\Api\Client\Options;
 use MauticPlugin\MauticRecommenderBundle\Model\EventLogModel;
@@ -55,7 +54,7 @@ abstract class AbstractRequest
     {
         $this->client          = $client;
         $this->options         = $this->client->getOptions();
-        $this->optionsResolver =  $this->client->getOptionsResolver();
+        $this->optionsResolver = $this->client->getOptionsResolver();
         $this->model           = $this->client->getClientModel();
         $this->accessor        = new PropertyAccessor();
     }
@@ -266,27 +265,6 @@ abstract class AbstractRequest
         if (($d && $d->format('Y-m-d g:i:s') == $date) || ($d2 && $d2->format('Y-m-d H:i:s') == $date)) {
             return true;
         } else {
-            return false;
-        }
-    }
-
-    /**
-     * Check if the value is a valid date.
-     *
-     * @param mixed $value
-     *
-     * @return boolean
-     */
-    private function isDate($value)
-    {
-        if (!$value) {
-            return false;
-        }
-        try {
-            new \DateTime($value);
-
-            return true;
-        } catch (\Exception $e) {
             return false;
         }
     }

@@ -11,7 +11,6 @@
 
 namespace MauticPlugin\MauticRecommenderBundle\Controller\Api;
 
-use FOS\RestBundle\Util\Codes;
 use Mautic\ApiBundle\Controller\CommonApiController;
 use MauticPlugin\MauticRecommenderBundle\Api\Service\ApiCommands;
 use MauticPlugin\MauticRecommenderBundle\Events\Processor;
@@ -32,14 +31,6 @@ class RecommenderApiController extends CommonApiController
      */
     private $allowedEvents = ['RecommenderEvent'];
 
-    /**
-     * @var array
-     */
-    private $requiredParams = ['contactId', 'contactEmail'];
-
-    /**
-     * @param FilterControllerEvent $event
-     */
     public function initialize(FilterControllerEvent $event)
     {
         $this->processor = $this->get('mautic.recommender.events.processor');
@@ -66,7 +57,7 @@ class RecommenderApiController extends CommonApiController
         try {
             $this->processor->process($eventDetail);
             /** @var ApiCommands $apiCommands */
-            $view  = $this->view(['success'=>'1'], Codes::HTTP_OK);
+            $view  = $this->view(['success'=>'1'], Response::HTTP_OK);
 
             return $this->handleView($view);
         } catch (\Exception $exception) {

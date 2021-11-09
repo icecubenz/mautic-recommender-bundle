@@ -3,10 +3,10 @@
 use Doctrine\ORM\EntityRepository;
 
 return [
-    'name'        => 'RecommenderTemplate',
+    'name'        => \MauticPlugin\MauticRecommenderBundle\Integration\RecommenderIntegration::DISPLAY_NAME,
     'description' => 'Recomendations engine',
-    'author'      => 'kuzmany.biz',
-    'version'     => '0.0.1',
+    'author'      => 'webmecanik.com',
+    'version'     => '1.0.0',
     'services'    => [
         'events'       => [
             /* Recommender filters  */
@@ -16,7 +16,6 @@ return [
                     'mautic.recommender.model.client',
                     'mautic.recommender.filter.recommender',
                     'mautic.recommender.filter.factory',
-                    'mautic.helper.integration',
                 ],
             ],
 
@@ -28,6 +27,7 @@ return [
                     'mautic.recommender.filter.fields.recommender',
                     'mautic.recommender.segment.decoration',
                     'mautic.helper.integration',
+                    'request_stack',
                 ],
             ],
 
@@ -36,6 +36,7 @@ return [
                 'arguments' => [
                     'mautic.helper.core_parameters',
                     'mautic.helper.integration',
+                    'router',
                 ],
             ],
             'mautic.recommender.pagebundle.subscriber'  => [
@@ -44,6 +45,7 @@ return [
                     'mautic.recommender.service.replacer',
                     'mautic.tracker.contact',
                     'mautic.helper.integration',
+                    'mautic.helper.token_builder.factory',
                 ],
             ],
             'mautic.recommender.token.replacer.subscriber'  => [
@@ -53,12 +55,15 @@ return [
                     'mautic.dynamicContent.model.dynamicContent',
                     'mautic.focus.model.focus',
                     'mautic.helper.integration',
+                    'mautic.tracker.contact',
                 ],
             ],
             'mautic.recommender.lead.timeline.subscriber'  => [
                 'class'     => MauticPlugin\MauticRecommenderBundle\EventListener\LeadSubscriber::class,
                 'arguments' => [
                     'mautic.helper.integration',
+                    'translator',
+                    'doctrine.orm.entity_manager',
                 ],
             ],
             'mautic.recommender.emailbundle.subscriber' => [
@@ -67,12 +72,49 @@ return [
                     'mautic.recommender.helper',
                     'mautic.recommender.service.replacer',
                     'mautic.helper.integration',
+                    'mautic.email.model.email',
+                    'mautic.helper.token_builder.factory',
                 ],
             ],
             'mautic.recommender.maintenance.subscriber' => [
-                'class'     => 'MauticPlugin\MauticRecommenderBundle\EventListener\MaintenanceSubscriber',
+                'class'     => \MauticPlugin\MauticRecommenderBundle\EventListener\MaintenanceSubscriber::class,
                 'arguments' => [
                     'doctrine.dbal.default_connection',
+                    'translator',
+                ],
+            ],
+
+            'mautic.recommender.query.selected_items.subscriber' => [
+                'class'     => \MauticPlugin\MauticRecommenderBundle\EventListener\RecommenderQuerySelectedItemsSubscriber::class,
+            ],
+            'mautic.recommender.query.selected_categories.subscriber' => [
+                'class'     => \MauticPlugin\MauticRecommenderBundle\EventListener\RecommenderQuerySelectedCategoriesSubscriber::class,
+                'arguments' => [
+                    'mautic.recommender.properties'
+                ]
+            ],
+            'mautic.recommender.query.best_sellers.subscriber' => [
+                'class'     => \MauticPlugin\MauticRecommenderBundle\EventListener\RecommenderQueryBestSellersSubscriber::class,
+                'arguments' => [
+                    'mautic.recommender.properties'
+                ]
+            ],
+            'mautic.recommender.query.popular_products.subscriber' => [
+                'class'     => \MauticPlugin\MauticRecommenderBundle\EventListener\RecommenderQueryPopularProductsSubscriber::class,
+            ],
+            'mautic.recommender.query.abandoned_cart.subscriber' => [
+                'class'     => \MauticPlugin\MauticRecommenderBundle\EventListener\RecommenderQueryAbandonedCartSubscriber::class,
+                'arguments' => [
+                    'mautic.recommender.properties'
+                ]
+            ],
+            'mautic.recommender.query.recently_created.subscriber' => [
+                'class'     => \MauticPlugin\MauticRecommenderBundle\EventListener\RecommenderQueryRecentlyCreatedSubscriber::class,
+            ],
+            'mautic.recommender.query.context.subscriber' => [
+                'class'     => \MauticPlugin\MauticRecommenderBundle\EventListener\RecommenderQueryContextSubscriber::class,
+                'arguments' => [
+                    'mautic.recommender.filter.token.context',
                 ],
             ],
         ],
@@ -89,6 +131,12 @@ return [
             'mautic.recommender.model.client' => [
                 'class'     => MauticPlugin\MauticRecommenderBundle\Model\RecommenderClientModel::class,
                 'arguments' => ['mautic.tracker.contact'],
+            ],
+            'mautic.recommender.model.property' => [
+                'class' => \MauticPlugin\MauticRecommenderBundle\Model\RecommenderPropertyModel::class,
+            ],
+            'mautic.recommender.model.categories' => [
+                'class'     => \MauticPlugin\MauticRecommenderBundle\Model\RecommenderCategoriesModel::class,
             ],
         ],
         'forms'        => [
@@ -128,7 +176,7 @@ return [
                 'alias' => 'recommender_template',
             ],
             'mautic.form.type.recommender.recommender_properties' => [
-                'class' => MauticPlugin\MauticRecommenderBundle\Form\Type\RecommenderPropertiesType::class,
+                'class' => MauticPlugin\MauticRecommenderBundle\Form\Type\RecommenderTemplatesPropertiesType::class,
                 'alias' => 'recommender_properties',
             ],
             'mautic.form.type.recommender.tags'         => [
@@ -160,6 +208,15 @@ return [
             ],
         ],
         'other'        => [
+            'mautic.recommender.filter.token.context' => [
+                'class'     => \MauticPlugin\MauticRecommenderBundle\Filter\Token\ContextToken::class,
+                'arguments' => [
+                    'mautic.lead.model.random_parameter_name',
+                    'mautic.recommender.model.property',
+                    'mautic.recommender.model.event',
+                ],
+            ],
+
             'mautic.recommender.logger' => [
                 'class'     => \MauticPlugin\MauticRecommenderBundle\Logger\DebugLogger::class,
                 'arguments' => [
@@ -171,16 +228,19 @@ return [
                 'arguments' => [
                     'mautic.helper.integration',
                     'mautic.helper.core_parameters',
+                    'mautic.recommender.model.event',
+                    'mautic.recommender.model.property',
                 ],
                 'methodCalls' => [
                     'initiateDebugLogger' => ['mautic.recommender.logger'],
                 ],
             ],
 
-            'mautic.recommender.contact.search'  => [
-                'class'     => \MauticPlugin\MauticRecommenderBundle\Service\ContactSearch::class,
+            'mautic.recommender.properties'  => [
+                'class'     => \MauticPlugin\MauticRecommenderBundle\Integration\RecommenderProperties::class,
                 'arguments' => [
-                    '@service_container',
+                    'mautic.recommender.model.property',
+                    'mautic.recommender.model.event',
                 ],
             ],
 
@@ -200,6 +260,7 @@ return [
                     'mautic.recommender.model.event',
                     'translator',
                     'mautic.lead.model.lead',
+                    'mautic.tracker.contact',
                 ],
             ],
 
@@ -209,14 +270,6 @@ return [
                 'arguments' => [
                     '@service_container',
                     'mautic.lead.model.lead_segment_schema_cache',
-                ],
-            ],
-            'mautic.recommender.filter.fields.segment'  => [
-                'class'     => \MauticPlugin\MauticRecommenderBundle\Filter\Segment\EventListener\Choices::class,
-                'arguments' => [
-                    'mautic.recommender.filter.fields',
-                    'mautic.lead.model.list',
-                    'translator',
                 ],
             ],
             'mautic.recommender.filter.fields'  => [
@@ -299,6 +352,13 @@ return [
                 'class'     => \MauticPlugin\MauticRecommenderBundle\Filter\Recommender\Query\ItemEventDateQueryBuilder::class,
                 'arguments' => ['mautic.lead.model.random_parameter_name'],
             ],
+            'mautic.recommender.query.builder.recommender.abandoned_cart'  => [
+                'class'     => \MauticPlugin\MauticRecommenderBundle\Filter\Recommender\Query\AbandonedCartQueryBuilder::class,
+                'arguments' => [
+                    'mautic.lead.model.random_parameter_name',
+                    'mautic.recommender.model.client',
+                ],
+            ],
             /* segment filter dictionary */
             'mautic.recommender.query.builder.segment.item'  => [
                 'class'     => \MauticPlugin\MauticRecommenderBundle\Filter\Segment\Query\ItemQueryBuilder::class,
@@ -325,6 +385,13 @@ return [
                 'class'     => \MauticPlugin\MauticRecommenderBundle\Filter\Query\ItemFilterQueryBuilder::class,
                 'arguments' => ['mautic.lead.model.random_parameter_name'],
             ],
+            'mautic.recommender.query.builder.abandoned_cart'  => [
+                'class'     => \MauticPlugin\MauticRecommenderBundle\Filter\Segment\Query\SegmentAbandonedCartQueryBuilder::class,
+                'arguments' => [
+                    'mautic.lead.model.random_parameter_name',
+                    'mautic.recommender.model.client',
+                ],
+            ],
             'mautic.recommender.filter.recommender'  => [
                 'class'     => \MauticPlugin\MauticRecommenderBundle\Filter\Recommender\RecommenderQueryBuilder::class,
                 'arguments' => [
@@ -333,6 +400,7 @@ return [
                     'mautic.recommender.filter.factory',
                     'mautic.recommender.recommender.decoration',
                     'mautic.recommender.filter.recommender.orderby',
+                    'event_dispatcher',
                 ],
             ],
             'mautic.recommender.filter.fields.recommender'  => [
@@ -387,8 +455,8 @@ return [
                 'class'     => MauticPlugin\MauticRecommenderBundle\Service\RecommenderToken::class,
                 'arguments' => [
                     'mautic.recommender.model.recommender',
-                    'mautic.lead.model.lead',
                     'mautic.helper.integration',
+                    'mautic.tracker.contact',
                 ],
             ],
             'mautic.recommender.service.token.finder'        => [
@@ -422,12 +490,6 @@ return [
                 'arguments' => [
                     'mautic.recommender.service.token.generator',
                     'mautic.recommender.service.token',
-                ],
-            ],
-            'mautic.recommender.service.campaign.lead.details' => [
-                'class'     => MauticPlugin\MauticRecommenderBundle\EventListener\Service\CampaignLeadDetails::class,
-                'arguments' => [
-                    'mautic.campaign.model.campaign',
                 ],
             ],
         ],
@@ -518,6 +580,10 @@ return [
                 'path'       => '/recommender/event/send',
                 'controller' => 'MauticRecommenderBundle:Recommender:send',
             ],
+            'mautic_recommender_dwc' => [
+                'path'       => '/recommender/dwc/{objectId}',
+                'controller' => 'MauticRecommenderBundle:Ajax:dwc',
+            ],
         ],
         'api'    => [
             'mautic_recommender_api' => [
@@ -584,6 +650,9 @@ return [
                 ],
             ],
         ],
+    ],
+    'categories' => [
+        'plugin:recommender' => 'mautic.recommender',
     ],
     'parameters'  => [
         'eventLabel'                => 'RecommenderEvent',

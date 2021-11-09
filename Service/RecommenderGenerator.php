@@ -11,6 +11,7 @@
 
 namespace MauticPlugin\MauticRecommenderBundle\Service;
 
+use Mautic\CoreBundle\Helper\ArrayHelper;
 use Mautic\CoreBundle\Helper\TemplatingHelper;
 use Mautic\LeadBundle\Model\LeadModel;
 use MauticPlugin\MauticRecommenderBundle\Api\RecommenderApi;
@@ -23,44 +24,18 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class RecommenderGenerator
 {
-    /** @var RecommenderApi */
-    private $recommenderApi;
-
-    /**
-     * @var TemplateModel
-     */
-    private $recommenderModel;
-
-    /**
-     * @var LeadModel
-     */
-    private $leadModel;
-
     /**
      * @var \Twig_Extension
      */
     private $twig;
-
-    /**
-     * @var ApiCommands
-     */
-    private $apiCommands;
-
     private $header;
-
     private $footer;
-
     /**
      * @var TemplatingHelper
      */
     private $templateHelper;
-
-    /** @var array $items */
-    private $items = [];
-
     /** @var array */
-    private $cache = [];
-
+    private $items = [];
     /**
      * @var EventDispatcherInterface
      */
@@ -68,79 +43,29 @@ class RecommenderGenerator
 
     /**
      * RecommenderGenerator constructor.
-     *
-     * @param TemplateModel            $recommenderModel
-     * @param RecommenderApi           $recommenderApi
-     * @param LeadModel                $leadModel
-     * @param \Twig_Environment        $twig
-     * @param ApiCommands              $apiCommands
-     * @param TemplatingHelper         $templatingHelper
-     * @param EventDispatcherInterface $dispatcher
      */
-    public function __construct(
-        TemplateModel $recommenderModel,
-        RecommenderApi $recommenderApi,
-        LeadModel $leadModel,
-        \Twig_Environment $twig,
-        ApiCommands $apiCommands,
-        TemplatingHelper $templatingHelper,
-        EventDispatcherInterface $dispatcher
-    ) {
-        $this->recommenderApi    = $recommenderApi;
-        $this->recommenderModel  = $recommenderModel;
-        $this->leadModel         = $leadModel;
+    public function __construct(TemplateModel $recommenderModel, RecommenderApi $recommenderApi, LeadModel $leadModel, \Twig_Environment $twig, ApiCommands $apiCommands, TemplatingHelper $templatingHelper, EventDispatcherInterface $dispatcher)
+    {
         $this->twig              = $twig;
-        $this->apiCommands       = $apiCommands;
         $this->templateHelper    = $templatingHelper;
         $this->dispatcher        = $dispatcher;
     }
 
-    /**
-     * @param RecommenderToken $recommenderToken
-     */
     public function getResultByToken(RecommenderToken $recommenderToken)
     {
         if (!$recommenderToken->getRecommender() instanceof Recommender) {
             return;
         }
 
+        $this->items = [];
+
         if ($this->dispatcher->hasListeners(RecommenderEvents::ON_RECOMMENDER_FILTER_RESULTS)) {
             $resultEvent = new FilterResultsEvent($recommenderToken);
             $this->dispatcher->dispatch(RecommenderEvents::ON_RECOMMENDER_FILTER_RESULTS, $resultEvent);
+            $this->items =  $resultEvent->getItems();
         }
-        $this->items =  $resultEvent->getItems();
 
         return $this->items;
-
-        /*switch ($recommenderToken->getType()) {
-            case "RecommendItemsToUser":
-                $this->apiCommands->callCommand(
-                    'RecommendItemsToUser',
-                    $recommenderToken->getOptions(['userId', 'limit'])
-                );
-                $items = $this->apiCommands->getCommandOutput();
-                break;
-        }
-        $this->items = $items['recomms'];
-        $this->cache[$hash] = $this->items;
-        return $this->items;*/
-
-        //$options['filter']           = $recommender->getFilter();
-        //$options['booster']          = $recommender->getBoost();
-        /*$options['returnProperties'] = true;
-        $recommenderToken->setAddOptions($options);
-            switch ($recommenderToken->getType()) {
-                case "RecommendItemsToUser":
-                    $this->apiCommands->callCommand(
-                        'RecommendItemsToUser',
-                        $recommenderToken->getOptions(['userId', 'limit'])
-                    );
-                    $items = $this->apiCommands->getCommandOutput();
-                    break;
-            }
-            $this->items = $items['recomms'];
-            $this->cache[$hash] = $this->items;
-            return $this->items;*/
     }
 
     /**
@@ -156,8 +81,6 @@ class RecommenderGenerator
     }
 
     /**
-     * @param RecommenderToken $recommenderToken
-     *
      * @return string|void
      */
     public function getContentByToken(RecommenderToken $recommenderToken, $view = 'Page')
@@ -167,11 +90,10 @@ class RecommenderGenerator
         }
         $recommenderTemplate = $recommenderToken->getRecommender()->getTemplate();
         $this->items         = $this->getResultByToken($recommenderToken);
-
         if (empty($this->items)) {
             return;
         }
-        if ($recommenderTemplate->getTemplateMode() == 'basic') {
+        if ('basic' == $recommenderTemplate->getTemplateMode()) {
             $headerTemplateCore = $this->templateHelper->getTemplating()->render(
                 'MauticRecommenderBundle:Builder/'.$view.':generator-header.html.php',
                 [
@@ -197,9 +119,16 @@ class RecommenderGenerator
             $footerTemplate = $this->twig->createTemplate($footerTemplateCore);
             $bodyTemplate   = $this->twig->createTemplate($bodyTemplateCore);
         } else {
-            $headerTemplate = $this->twig->createTemplate($recommenderTemplate->getTemplate()['header']);
-            $footerTemplate = $this->twig->createTemplate($recommenderTemplate->getTemplate()['footer']);
-            $bodyTemplate   = $this->twig->createTemplate($recommenderTemplate->getTemplate()['body']);
+            $headerTemplate = ArrayHelper::getValue('header', $recommenderTemplate->getTemplate());
+            if ($headerTemplate) {
+                $headerTemplate = $this->twig->createTemplate($headerTemplate);
+            }
+            $bodyTemplate = $this->twig->createTemplate($recommenderTemplate->getTemplate()['body']);
+
+            $footerTemplate = ArrayHelper::getValue('footer', $recommenderTemplate->getTemplate());
+            if ($footerTemplate) {
+                $footerTemplate = $this->twig->createTemplate($footerTemplate);
+            }
         }
 
         return $this->getTemplateContent($headerTemplate, $footerTemplate, $bodyTemplate);
@@ -210,12 +139,18 @@ class RecommenderGenerator
      */
     private function getTemplateContent($headerTemplate, $footerTemplate, $bodyTemplate)
     {
-        $output = $headerTemplate->render($this->getFirstItem());
+        $output = '';
+        if ($headerTemplate) {
+            $output .= $headerTemplate->render($this->getFirstItem());
+        }
         foreach ($this->getItems() as $i => $item) {
             $item['index'] = $i;
             $output .= $bodyTemplate->render($item);
         }
-        $output .= $footerTemplate->render($this->getFirstItem());
+
+        if ($footerTemplate) {
+            $output .= $footerTemplate->render($this->getFirstItem());
+        }
 
         return $output;
     }
@@ -243,7 +178,7 @@ class RecommenderGenerator
     {
         $keys = $this->getItemsKeys();
         foreach ($this->items as &$item) {
-            foreach ($item as $key => &$ite) {
+            foreach ($item as &$ite) {
                 if (is_array($ite)) {
                     $ite = implode(', ', $ite);
                 }

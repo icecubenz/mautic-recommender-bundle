@@ -11,18 +11,23 @@
 
 namespace MauticPlugin\MauticRecommenderBundle\Filter\Segment\Decorator;
 
-use Mautic\LeadBundle\Segment\Query\Filter\ForeignValueFilterQueryBuilder;
 use MauticPlugin\MauticRecommenderBundle\Filter\Fields\Fields;
 use MauticPlugin\MauticRecommenderBundle\Filter\Query\BaseFilterQueryBuilder;
-use MauticPlugin\MauticRecommenderBundle\Filter\Recommender\Query\ItemQueryBuilder;
 use MauticPlugin\MauticRecommenderBundle\Filter\Segment\Query\ItemValueQueryBuilder;
+use MauticPlugin\MauticRecommenderBundle\Filter\Segment\Query\SegmentAbandonedCartQueryBuilder;
 use MauticPlugin\MauticRecommenderBundle\Filter\Segment\Query\SegmentEventDateQueryBuilder;
 use MauticPlugin\MauticRecommenderBundle\Filter\Segment\Query\SegmentEventQueryBuilder;
 use MauticPlugin\MauticRecommenderBundle\Filter\Segment\Query\SegmentEventValueQueryBuilder;
 
 class SegmentDictionary
 {
-    const ALLOWED_TABLES = ['recommender_event_log', 'recommender_event_log_property_value', 'recommender_item', 'recommender_item_property_value'];
+    const ALLOWED_TABLES = [
+        'recommenders',
+        'recommender_event_log',
+        'recommender_event_log_property_value',
+        'recommender_item',
+        'recommender_item_property_value',
+    ];
 
     /**
      * @var Fields
@@ -31,8 +36,6 @@ class SegmentDictionary
 
     /**
      * SegmentChoices constructor.
-     *
-     * @param Fields $fields
      */
     public function __construct(Fields $fields)
     {
@@ -46,6 +49,24 @@ class SegmentDictionary
             $fields = $this->fields->getFields($table);
             foreach ($fields as $key => $field) {
                 switch ($table) {
+                    case 'recommenders':
+                        switch ($key) {
+                            case 'abandoned_cart':
+                                $dictionary[$key] = [
+                                    'type'          => SegmentAbandonedCartQueryBuilder::getServiceId(),
+                                    'foreign_table' => 'recommender_event_log',
+                                    'field'         => $key,
+                                ];
+                            break;
+                            case 'total_purchased_price':
+                                $dictionary[$key] = [
+                                    'type'          => SegmentAbandonedCartQueryBuilder::getServiceId(),
+                                    'foreign_table' => 'recommender_event_log',
+                                    'field'         => $key,
+                                ];
+                                break;
+                        }
+                        break;
                     case 'recommender_item':
                         $dictionary[$key] = [
                             'type'          => \MauticPlugin\MauticRecommenderBundle\Filter\Segment\Query\ItemQueryBuilder::getServiceId(),

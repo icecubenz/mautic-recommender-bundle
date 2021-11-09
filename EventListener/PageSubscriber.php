@@ -11,7 +11,9 @@
 
 namespace MauticPlugin\MauticRecommenderBundle\EventListener;
 
+use Mautic\CoreBundle\EventListener\CommonSubscriber;
 use Mautic\CoreBundle\Helper\BuilderTokenHelper;
+use Mautic\CoreBundle\Helper\BuilderTokenHelperFactory;
 use Mautic\LeadBundle\LeadEvent;
 use Mautic\LeadBundle\Tracker\ContactTracker;
 use Mautic\PageBundle\Event as Events;
@@ -20,9 +22,7 @@ use Mautic\PluginBundle\Helper\IntegrationHelper;
 use MauticPlugin\MauticRecommenderBundle\Helper\RecommenderHelper;
 use MauticPlugin\MauticRecommenderBundle\Service\RecommenderTokenReplacer;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-/**
- * Class PageSubscriber.
- */
+
 class PageSubscriber implements EventSubscriberInterface
 {
     /**
@@ -41,19 +41,23 @@ class PageSubscriber implements EventSubscriberInterface
     protected $integrationHelper;
 
     /**
+     * @var BuilderTokenHelperFactory
+     */
+    private $builderTokenHelperFactory;
+
+    /**
      * PageSubscriber constructor.
-     *
-     * @param RecommenderTokenReplacer $recommenderTokenReplacer
-     * @param ContactTracker           $contactTracker
      */
     public function __construct(
         RecommenderTokenReplacer $recommenderTokenReplacer,
         ContactTracker $contactTracker,
-        IntegrationHelper $integrationHelper
+        IntegrationHelper $integrationHelper,
+        BuilderTokenHelperFactory $builderTokenHelperFactory
     ) {
-        $this->recommenderTokenReplacer = $recommenderTokenReplacer;
-        $this->contactTracker           = $contactTracker;
-        $this->integrationHelper        = $integrationHelper;
+        $this->recommenderTokenReplacer  = $recommenderTokenReplacer;
+        $this->contactTracker            = $contactTracker;
+        $this->integrationHelper         = $integrationHelper;
+        $this->builderTokenHelperFactory = $builderTokenHelperFactory;
     }
 
     /**
@@ -75,12 +79,12 @@ class PageSubscriber implements EventSubscriberInterface
     public function onPageBuild(Events\PageBuilderEvent $event)
     {
         $integration = $this->integrationHelper->getIntegrationObject('Recommender');
-        if (!$integration || $integration->getIntegrationSettings()->getIsPublished() === false) {
+        if (!$integration || false === $integration->getIntegrationSettings()->getIsPublished()) {
             return;
         }
 
         if ($event->tokensRequested(RecommenderHelper::$recommenderRegex)) {
-            $tokenHelper = new BuilderTokenHelper($this->factory, 'recommender');
+            $tokenHelper = $this->builderTokenHelperFactory->getBuilderTokenHelper('recommender');
             $event->addTokensFromHelper($tokenHelper, RecommenderHelper::$recommenderRegex, 'name', 'id', true);
         }
     }
@@ -91,7 +95,7 @@ class PageSubscriber implements EventSubscriberInterface
     public function onPageDisplay(Events\PageDisplayEvent $event)
     {
         $integration = $this->integrationHelper->getIntegrationObject('Recommender');
-        if (!$integration || $integration->getIntegrationSettings()->getIsPublished() === false) {
+        if (!$integration || false === $integration->getIntegrationSettings()->getIsPublished()) {
             return;
         }
 

@@ -11,12 +11,15 @@
 
 namespace MauticPlugin\MauticRecommenderBundle\EventListener;
 
+use Doctrine\ORM\EntityManager;
+use Mautic\CoreBundle\EventListener\CommonSubscriber;
 use Mautic\LeadBundle\Event\LeadTimelineEvent;
 use Mautic\LeadBundle\LeadEvents;
 use Mautic\PluginBundle\Helper\IntegrationHelper;
 use MauticPlugin\MauticRecommenderBundle\Entity\EventLog;
 use MauticPlugin\MauticRecommenderBundle\Entity\EventLogRepository;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 /**
  * Class LeadSubscriber.
@@ -29,14 +32,23 @@ class LeadSubscriber implements EventSubscriberInterface
     protected $integrationHelper;
 
     /**
-     * LeadSubscriber constructor.
-     *
-     * @param FormModel $formModel
-     * @param PageModel $pageModel
+     * @var TranslatorInterface
      */
-    public function __construct(IntegrationHelper $integrationHelper)
+    private $translator;
+
+    /**
+     * @var EntityManager
+     */
+    private $em;
+
+    /**
+     * LeadSubscriber constructor.
+     */
+    public function __construct(IntegrationHelper $integrationHelper, TranslatorInterface $translator, EntityManager $em)
     {
         $this->integrationHelper      = $integrationHelper;
+        $this->translator             = $translator;
+        $this->em                     = $em;
     }
 
     /**
@@ -51,8 +63,6 @@ class LeadSubscriber implements EventSubscriberInterface
 
     /**
      * Compile events for the lead timeline.
-     *
-     * @param LeadTimelineEvent $event
      */
     public function onTimelineGenerate(LeadTimelineEvent $event)
     {
@@ -61,7 +71,7 @@ class LeadSubscriber implements EventSubscriberInterface
             return;
         }
         $integrationSettings = $integration->getIntegrationSettings();
-        if (!$integration || $integrationSettings->getIsPublished() === false) {
+        if (!$integration || false === $integrationSettings->getIsPublished()) {
             return;
         }
 
@@ -102,8 +112,6 @@ class LeadSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * @param EventLog $eventLogEntity
-     *
      * @return string
      */
     private function getLabel(EventLog $eventLogEntity)

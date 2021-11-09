@@ -11,17 +11,10 @@ use Symfony\Component\Form\Extension\Core\Type\UrlType;
 
 class RecommenderIntegration extends AbstractIntegration
 {
-    const NAME = 'Recommender';
+    const NAME           = 'Recommender';
+    const DISPLAY_NAME   = 'Recomendations';
     const IMPORT_TIMEOUT = '-1 day';
-    const IMPORT_BATCH = 100;
-
-    /**
-     * RecommenderIntegration constructor.
-     */
-    public function __construct()
-    {
-        parent::__construct();
-    }
+    const IMPORT_BATCH   = 100;
 
     /**
      * {@inheritdoc}
@@ -31,6 +24,11 @@ class RecommenderIntegration extends AbstractIntegration
     public function getName()
     {
         return self::NAME;
+    }
+
+    public function getDisplayName()
+    {
+        return self::DISPLAY_NAME;
     }
 
     public function getIcon()
@@ -89,7 +87,7 @@ class RecommenderIntegration extends AbstractIntegration
      */
     public function appendToForm(&$builder, $data, $formArea)
     {
-        if ($formArea == 'features') {
+        if ('features' == $formArea) {
             $builder->add(
                 'currency',
                 TextType::class,
@@ -124,7 +122,7 @@ class RecommenderIntegration extends AbstractIntegration
                         'class'        => 'form-control',
                         'tooltip'      => 'mautic.plugin.recommender.form.items_import_url.tooltip',
                     ],
-                    'required' => false
+                    'required' => false,
                 ]
             );
 
@@ -138,7 +136,7 @@ class RecommenderIntegration extends AbstractIntegration
                         'class'        => 'form-control',
                         'tooltip'      => 'mautic.plugin.recommender.form.events_import_url.tooltip',
                     ],
-                    'required' => false
+                    'required' => false,
                 ]
             );
 
@@ -153,7 +151,7 @@ class RecommenderIntegration extends AbstractIntegration
                         'tooltip'      => 'mautic.plugin.recommender.form.batch_limit.tooltip',
                         'placeholder'  => self::IMPORT_BATCH,
                     ],
-                    'required' => false
+                    'required' => false,
                 ]
             );
 
@@ -168,7 +166,7 @@ class RecommenderIntegration extends AbstractIntegration
                         'tooltip'      => 'mautic.plugin.recommender.form.timeout.tooltip',
                         'placeholder'  => self::IMPORT_TIMEOUT,
                     ],
-                    'required' => false
+                    'required' => false,
                 ]
             );
         }

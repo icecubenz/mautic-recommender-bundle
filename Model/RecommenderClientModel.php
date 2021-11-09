@@ -12,21 +12,17 @@
 namespace MauticPlugin\MauticRecommenderBundle\Model;
 
 use Mautic\CoreBundle\Model\AbstractCommonModel;
+use Mautic\CoreBundle\Model\AjaxLookupModelInterface;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Tracker\ContactTracker;
-use MauticPlugin\MauticRecommenderBundle\Entity\Item;
+use MauticPlugin\MauticRecommenderBundle\Entity\Property;
 
-class RecommenderClientModel extends AbstractCommonModel
+class RecommenderClientModel extends AbstractCommonModel implements AjaxLookupModelInterface
 {
-    /**
-     * @var ContactTracker
-     */
     private $contactTracker;
 
     /**
      * RecommenderClientModel constructor.
-     *
-     * @param ContactTracker $contactTracker
      */
     public function __construct(ContactTracker $contactTracker)
     {
@@ -97,5 +93,39 @@ class RecommenderClientModel extends AbstractCommonModel
     public function getCurrentContact()
     {
         return $this->contactTracker->getContact();
+    }
+
+    /**
+     * @param        $type
+     * @param string $filter
+     * @param int    $limit
+     * @param int    $start
+     * @param array  $options
+     */
+    public function getLookupResults($type, $filter = '', $limit = 100, $start = 0, $options = [])
+    {
+        $results = [];
+        switch ($type) {
+            case 'recommender.client':
+                /** @var Property $property */
+                if ($property = $this->getPropertyRepository()->findOneBy(['name' => 'product'])) {
+                    $items = $this->getItemPropertyValueRepository()->getValuesForProperty(
+                        $property->getId(),
+                        100,
+                        !is_array($filter) ? $filter : ''
+                    );
+                    foreach ($items as $item) {
+                        $results[] = [
+                            'label' => $item['value'],
+                            'value' => $item['item_id'],
+                        ];
+
+                        //['label' => $item['value'], 'value' => $item['item_id']];
+                    }
+                }
+                break;
+        }
+
+        return $results;
     }
 }

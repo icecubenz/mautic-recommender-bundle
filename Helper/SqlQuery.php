@@ -15,7 +15,7 @@ use MauticPlugin\MauticCrmBundle\Integration\Salesforce\QueryBuilder;
 
 class SqlQuery
 {
-    public static $query;
+    public static $query = [];
 
     /**
      * @param QueryBuilder $query
@@ -30,6 +30,8 @@ class SqlQuery
         foreach ($params as $name => $param) {
             if (is_array($param)) {
                 $param = implode(',', $param);
+            } elseif ($param instanceof \DateTimeInterface) {
+                $param = $param->format('Y-m-d');
             }
             $q = str_replace(":$name", "'$param'", $q);
         }
@@ -42,6 +44,6 @@ class SqlQuery
      */
     public static function debugQuery($query)
     {
-        self::$query = self::getQuery($query);
+        self::$query[] = self::getQuery($query);
     }
 }

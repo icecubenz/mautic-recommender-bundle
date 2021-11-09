@@ -28,18 +28,12 @@ class ListEventsType extends AbstractType
 
     /**
      * EventsListType constructor.
-     *
-     * @param RecommenderEventModel $recommenderEventModel
      */
     public function __construct(RecommenderEventModel $recommenderEventModel)
     {
         $this->recommenderEventModel = $recommenderEventModel;
     }
 
-    /**
-     * @param FormBuilderInterface $builder
-     * @param array                $options
-     */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
     }
@@ -67,7 +61,7 @@ class ListEventsType extends AbstractType
             'expanded'    => false,
             'multiple'    => false,
             'required'    => false,
-            'empty_value' => '',
+            'placeholder' => '',
         ]);
     }
 

@@ -12,9 +12,12 @@
 namespace MauticPlugin\MauticRecommenderBundle\Form\Type;
 
 use Doctrine\ORM\EntityManager;
+use Mautic\CategoryBundle\Form\Type\CategoryListType;
 use Mautic\CoreBundle\Form\DataTransformer\IdToEntityModelTransformer;
+use Mautic\CoreBundle\Form\Type\FormButtonsType;
 use Mautic\LeadBundle\Form\DataTransformer\FieldFilterTransformer;
 use Mautic\LeadBundle\Model\ListModel;
+use MauticPlugin\MauticRecommenderBundle\Enum\FiltersEnum;
 use MauticPlugin\MauticRecommenderBundle\Event\FilterChoiceFormEvent;
 use MauticPlugin\MauticRecommenderBundle\Event\FilterFormEvent;
 use MauticPlugin\MauticRecommenderBundle\Filter\Recommender\Choices;
@@ -22,12 +25,12 @@ use MauticPlugin\MauticRecommenderBundle\Model\RecommenderClientModel;
 use MauticPlugin\MauticRecommenderBundle\RecommenderEvents;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ButtonType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\Form\FormEvent;
-use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -38,54 +41,21 @@ use Symfony\Component\Validator\Constraints\Range;
 
 class RecommenderType extends AbstractType
 {
-    /**
-     * @var EventDispatcherInterface
-     */
     private $dispatcher;
 
-    /**
-     * @var EntityManager
-     */
     private $entityManager;
 
-    /**
-     * @var TranslatorInterface
-     */
     private $translator;
 
     /** @var array */
     private $fieldChoices;
 
-    /**
-     * @var ListModel
-     */
-    private $listModel;
-
-    /**
-     * @var RecommenderClientModel
-     */
-    private $recommenderClientModel;
-
-    /**
-     * @var Choices
-     */
     private $choices;
 
-    /**
-     * @var RouterInterface
-     */
     private $router;
 
     /**
      * RecommenderType constructor.
-     *
-     * @param EventDispatcherInterface $dispatcher
-     * @param EntityManager            $entityManager
-     * @param TranslatorInterface      $translator
-     * @param ListModel                $listModel
-     * @param RecommenderClientModel   $recommenderClientModel
-     * @param Choices                  $choices
-     * @param RouterInterface          $router
      */
     public function __construct(
         EventDispatcherInterface $dispatcher,
@@ -96,19 +66,13 @@ class RecommenderType extends AbstractType
         Choices $choices,
         RouterInterface $router
     ) {
-        $this->dispatcher             = $dispatcher;
-        $this->entityManager          = $entityManager;
-        $this->translator             = $translator;
-        $this->listModel              = $listModel;
-        $this->recommenderClientModel = $recommenderClientModel;
-        $this->choices                = $choices;
-        $this->router                 = $router;
+        $this->dispatcher    = $dispatcher;
+        $this->entityManager = $entityManager;
+        $this->translator    = $translator;
+        $this->choices       = $choices;
+        $this->router        = $router;
     }
 
-    /**
-     * @param FormBuilderInterface $builder
-     * @param array                $options
-     */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         $builder->add(
@@ -193,7 +157,7 @@ class RecommenderType extends AbstractType
 
             $builder->add(
                 'newRecommenderButton',
-                'button',
+                ButtonType::class,
                 [
                     'attr'  => [
                         'class'   => 'btn btn-primary btn-nospin',
@@ -219,7 +183,7 @@ class RecommenderType extends AbstractType
 
             $builder->add(
                 'editRecommenderButton',
-                'button',
+                ButtonType::class,
                 [
                     'attr'  => [
                         'class'    => 'btn btn-primary btn-nospin',
@@ -238,49 +202,23 @@ class RecommenderType extends AbstractType
             $this->dispatcher->dispatch(RecommenderEvents::ON_RECOMMENDER_FILTER_FORM_CHOICES_GENERATE, $choiceEvent);
             $choices = $choiceEvent->getChoices('filter');
         }
-        $builder->add(
-            'filter',
-            'choice',
-            [
-                'choices'     => $choices,
-                'expanded'    => false,
-                'multiple'    => false,
-                'label'       => 'mautic.plugin.recommender.form.recommendations.type',
-                'label_attr'  => ['class' => ''],
-                'empty_value' => '',
-                'required'    => true,
-                'constraints' => [
-                    new NotBlank(
-                        [
-                            'message' => 'mautic.core.value.required',
-                        ]
-                    ),
-                ],
-            ]
-        );
 
-        $this->fieldChoices     = $this->choices->addChoices('recommender_event');
+        $this->fieldChoices = $this->choices->addChoices('recommender');
+
         $filterModalTransformer = new FieldFilterTransformer($this->translator);
         $builder->add(
             $builder->create(
                 'filters',
-                'collection',
+                CollectionType::class,
                 [
-                    'type'           => FilterType::class,
-                    'options'        => [
+                    'entry_type'     => FilterType::class,
+                    'entry_options'  => [
                         'fields' => $this->fieldChoices,
                     ],
                     'error_bubbling' => false,
                     'mapped'         => true,
                     'allow_add'      => true,
                     'allow_delete'   => true,
-                    'constraints'    => [
-                        new NotBlank(
-                            [
-                                'message' => $this->translator->trans('mautic.plugin.recommender.form.filter.empty'),
-                            ]
-                        ),
-                    ],
                 ]
             )
                 ->addModelTransformer($filterModalTransformer)
@@ -303,38 +241,44 @@ class RecommenderType extends AbstractType
         );
 
         $builder->add(
-            'filterTarget',
-            'choice',
+            'properties',
+            RecommenderPropertiesType::class,
             [
-                'choices'     => [
-                    'reflective'  => 'mautic.plugin.recommender.form.filter_target.reflective',
-                    'exclusive'   => 'mautic.plugin.recommender.form.filter_target.exclusive',
-                    'inclusive'   => 'mautic.plugin.recommender.form.filter_target.inclusive',
-                    'proximity5'  => 'mautic.plugin.recommender.form.filter_target.proximity5',
-                    'proximity10' => 'mautic.plugin.recommender.form.filter_target.proximity10',
-                ],
+                'label' => 'recommender.properties',
+                'data'  => $options['data']->getProperties(),
+            ]
+        );
+
+        $builder->add(
+            'filterTarget',
+            ChoiceType::class,
+            [
+                'choices'     => array_flip($this->getFilterTargets()),
                 'choice_attr' => function ($choice, $key, $value) {
-                    return ['tooltip' => "mautic.plugin.recommender.form.filter_target.{$value}.tooltip"];
+                    return ['tooltip' => "recommender.form.{$value}.tooltip"];
                 },
-                'expanded'    => true,
-                'multiple'    => false,
-                'label'       => 'mautic.plugin.recommender.form.filter_target',
-                'label_attr'  => ['class' => ''],
-                //'empty_value' => 'reflective',
-                'required'    => true,
-                'constraints' => [
-                    new NotBlank(
-                        [
-                            'message' => 'mautic.core.value.required',
-                        ]
-                    ),
+                'attr'        => [
+                    'onchange' => ' Mautic.recommendationsType(this)',
                 ],
+                'expanded'    => false,
+                'multiple'    => false,
+                'label'       => 'recommender.recommendations.type',
+                'label_attr'  => ['class' => 'control-label'],
+                'required'    => false,
             ]
         );
 
         $builder->add(
             'buttons',
-            'form_buttons'
+            FormButtonsType::class
+        );
+
+        $builder->add(
+            'category',
+            CategoryListType::class,
+            [
+                'bundle' => 'plugin:recommender',
+            ]
         );
     }
 
@@ -343,9 +287,6 @@ class RecommenderType extends AbstractType
         $view->vars['fields'] = $this->fieldChoices;
     }
 
-    /**
-     * @param OptionsResolver $resolver
-     */
     public function configureOptions(OptionsResolver $resolver)
     {
         $resolver->setDefined(['update_select']);
@@ -354,8 +295,19 @@ class RecommenderType extends AbstractType
     /**
      * @return string
      */
-    public function getName()
+    public function getBlockPrefix()
     {
         return 'recommender';
+    }
+
+    private function getFilterTargets(): array
+    {
+        return FiltersEnum::getFilterTargets();
+
+        //'reflective'  => 'mautic.plugin.recommender.form.filter_target.reflective',
+        // 'exclusive'   => 'mautic.plugin.recommender.form.filter_target.exclusive',
+        //'inclusive'   => 'mautic.plugin.recommender.form.filter_target.inclusive',
+        //'proximity5'  => 'mautic.plugin.recommender.form.filter_target.proximity5',
+        //'proximity10' => 'mautic.plugin.recommender.form.filter_target.proximity10',
     }
 }

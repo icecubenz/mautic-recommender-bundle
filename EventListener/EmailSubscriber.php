@@ -11,18 +11,18 @@
 
 namespace MauticPlugin\MauticRecommenderBundle\EventListener;
 
-use Mautic\CoreBundle\Helper\BuilderTokenHelper;
+use Mautic\CoreBundle\Helper\BuilderTokenHelperFactory;
 use Mautic\EmailBundle\EmailEvents;
+use Mautic\EmailBundle\Entity\Stat;
 use Mautic\EmailBundle\Event\EmailBuilderEvent;
 use Mautic\EmailBundle\Event\EmailSendEvent;
+use Mautic\EmailBundle\Exception\FailedToSendToContactException;
+use Mautic\EmailBundle\Model\EmailModel;
 use Mautic\PluginBundle\Helper\IntegrationHelper;
 use MauticPlugin\MauticRecommenderBundle\Helper\RecommenderHelper;
 use MauticPlugin\MauticRecommenderBundle\Service\RecommenderTokenReplacer;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
-/**
- * Class EmailSubscriber.
- */
 class EmailSubscriber implements EventSubscriberInterface
 {
     /**
@@ -41,19 +41,30 @@ class EmailSubscriber implements EventSubscriberInterface
     protected $integrationHelper;
 
     /**
+     * @var EmailModel
+     */
+    private $emailModel;
+
+    /**
+     * @var BuilderTokenHelperFactory
+     */
+    private $builderTokenHelperFactory;
+
+    /**
      * EmailSubscriber constructor.
-     *
-     * @param RecommenderHelper        $recommenderHelper
-     * @param RecommenderTokenReplacer $recommenderTokenReplacer
      */
     public function __construct(
         RecommenderHelper $recommenderHelper,
         RecommenderTokenReplacer $recommenderTokenReplacer,
-        IntegrationHelper $integrationHelper
+        IntegrationHelper $integrationHelper,
+        EmailModel $emailModel,
+        BuilderTokenHelperFactory $builderTokenHelperFactory
     ) {
-        $this->recommenderHelper        = $recommenderHelper;
-        $this->recommenderTokenReplacer = $recommenderTokenReplacer;
-        $this->integrationHelper        = $integrationHelper;
+        $this->recommenderHelper         = $recommenderHelper;
+        $this->recommenderTokenReplacer  = $recommenderTokenReplacer;
+        $this->integrationHelper         = $integrationHelper;
+        $this->emailModel                = $emailModel;
+        $this->builderTokenHelperFactory = $builderTokenHelperFactory;
     }
 
     /**
@@ -70,54 +81,52 @@ class EmailSubscriber implements EventSubscriberInterface
 
     /**
      * Add email to available page tokens.
-     *
-     * @param EmailBuilderEvent $event
      */
     public function onPageBuild(EmailBuilderEvent $event)
     {
         $integration = $this->integrationHelper->getIntegrationObject('Recommender');
-        if (!$integration || $integration->getIntegrationSettings()->getIsPublished() === false) {
+        if (!$integration || false === $integration->getIntegrationSettings()->getIsPublished()) {
             return;
         }
 
         if ($event->tokensRequested(RecommenderHelper::$recommenderRegex)) {
-            $tokenHelper = new BuilderTokenHelper($this->factory, 'recommender');
+            $tokenHelper = $this->builderTokenHelperFactory->getBuilderTokenHelper('recommender', 'recommender:recommender');
             $event->addTokensFromHelper($tokenHelper, RecommenderHelper::$recommenderRegex, 'name', 'id', true);
         }
     }
 
-    /**
-     * @param EmailSendEvent $event
-     */
     public function onEmailDisplay(EmailSendEvent $event)
     {
         $integration = $this->integrationHelper->getIntegrationObject('Recommender');
-        if (!$integration || $integration->getIntegrationSettings()->getIsPublished() === false) {
+        if (!$integration || false === $integration->getIntegrationSettings()->getIsPublished()) {
             return;
         }
 
         $this->onEmailGenerate($event);
     }
 
-    /**
-     * @param EmailSendEvent $event
-     */
     public function onEmailGenerate(EmailSendEvent $event)
     {
         $integration = $this->integrationHelper->getIntegrationObject('Recommender');
-        if (!$integration || $integration->getIntegrationSettings()->getIsPublished() === false) {
+        if (!$integration || false === $integration->getIntegrationSettings()->getIsPublished()) {
             return;
         }
-
         if ($event->getEmail() && $event->getEmail()->getId() && !empty($event->getLead()['id'])) {
             $this->recommenderTokenReplacer->getRecommenderToken()->setUserId($event->getLead()['id']);
             $this->recommenderTokenReplacer->getRecommenderToken()->setContent($event->getContent());
-            if ($content = $this->recommenderTokenReplacer->getReplacedContent('Email')) {
-                $event->setContent($content);
+            $replacedTokens = $this->recommenderTokenReplacer->getReplacedTokensFromContent($event->getContent().'Email');
+            if (count(array_filter($replacedTokens)) != count($replacedTokens)) {
+                /** @var Stat $stat */
+                if ($stat = $this->emailModel->getStatRepository()->findOneBy(
+                    ['trackingHash' => $event->getIdHash()]
+                )) {
+                    $stat->setIsFailed(true);
+                    $this->emailModel->getStatRepository()->saveEntity($stat);
+                }
+
+                throw new FailedToSendToContactException();
             }
-            if ($subject = $this->recommenderTokenReplacer->getRecommenderGenerator()->replaceTagsFromContent($event->getSubject())) {
-                $event->setSubject($subject);
-            }
+            $event->addTokens($replacedTokens);
         }
     }
 }

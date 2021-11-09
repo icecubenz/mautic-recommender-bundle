@@ -56,17 +56,19 @@ class RecommenderTemplate extends FormEntity
      */
     private $template;
 
-    /**
-     * @var
-     */
-    private $properties = [];
-
-    /**
-     * RecommenderTemplate constructor.
-     */
-    public function __construct()
-    {
-    }
+    private $properties = [
+        'columns'         => 3,
+        'numberOfItems'   => 4,
+        'colPadding'      => '10px',
+        'itemName'        => '{{ product }}',
+        'itemNamePadding' => '10px 0px',
+        'itemImage'       => '{{ image }}',
+        'itemImageStyle'  => 'max-height:150px;',
+        'itemPrice'       => '{{ price }}',
+        'itemPriceSize'   => '18px',
+        'itemPricePading' => '10px 0px',
+        'itemUrl'         => '{{ url }}',
+    ];
 
     /**
      * Clone method.
@@ -78,9 +80,6 @@ class RecommenderTemplate extends FormEntity
         parent::__clone();
     }
 
-    /**
-     * @param ORM\ClassMetadata $metadata
-     */
     public static function loadMetadata(ORM\ClassMetadata $metadata)
     {
         $builder = new ClassMetadataBuilder($metadata);
@@ -113,18 +112,12 @@ class RecommenderTemplate extends FormEntity
             ->build();
     }
 
-    /**
-     * @param ClassMetadata $metadata
-     */
     public static function loadValidatorMetaData(ClassMetadata $metadata)
     {
         $metadata->addPropertyConstraint('name', new NotBlank(['message' => 'mautic.core.name.required']));
         $metadata->addPropertyConstraint('numberOfItems', new NotBlank(['message' => 'mautic.core.name.required']));
     }
 
-    /**
-     * @param ApiMetadataDriver $metadata
-     */
     public static function loadApiMetadata(ApiMetadataDriver $metadata)
     {
         $metadata->setGroupPrefix('recommender')

@@ -15,6 +15,7 @@ use JMS\Serializer\Tests\Fixtures\Input;
 use Mautic\CoreBundle\Helper\InputHelper;
 use MauticPlugin\MauticRecommenderBundle\Api\Service\ApiCommands;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -31,18 +32,12 @@ class RecommenderTagsType extends AbstractType
 
     /**
      * RecommenderTagsType constructor.
-     *
-     * @param ApiCommands $apiCommands
      */
     public function __construct(ApiCommands $apiCommands)
     {
         $this->apiCommands = $apiCommands;
     }
 
-    /**
-     * @param FormBuilderInterface $builder
-     * @param array                $options
-     */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
     }
@@ -61,7 +56,7 @@ class RecommenderTagsType extends AbstractType
                     $choices[$tag] = $property['name'];
                 }
 
-                return $choices;
+                return array_flip($choices);
             },
             'label'       => 'mautic.plugin.recommender.template.tags',
             'label_attr'  => ['class' => 'control-label'],
@@ -73,7 +68,7 @@ class RecommenderTagsType extends AbstractType
     /**
      * @return string
      */
-    public function getName()
+    public function getBlockPrefix()
     {
         return 'recommender_tags';
     }
@@ -83,6 +78,6 @@ class RecommenderTagsType extends AbstractType
      */
     public function getParent()
     {
-        return 'choice';
+        return ChoiceType::class;
     }
 }

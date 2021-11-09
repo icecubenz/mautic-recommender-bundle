@@ -119,13 +119,15 @@ class RecommenderController extends AbstractStandardFormController
     public function viewAction($objectId)
     {
         //set the page we came from
-        $page      = $this->get('session')->get('mautic.recommender.page', 1);
-        $returnUrl = $this->generateUrl('mautic_recommender_index', ['page' => $page]);
+        $returnUrl = $this->generateUrl(
+            'mautic_recommender_action',
+            ['objectId' => $objectId, 'objectAction' => 'edit']
+        );
 
         return $this->postActionRedirect(
             [
                 'returnUrl'       => $returnUrl,
-                'viewParameters'  => ['page' => $page],
+                'viewParameters'  => ['page' => 1],
                 'contentTemplate' => 'MauticRecommenderBundle:Recommender:index',
                 'passthroughVars' => [
                     'activeLink'    => '#mautic_recommender_index',
@@ -147,7 +149,6 @@ class RecommenderController extends AbstractStandardFormController
 
     /**
      * @param      $entity
-     * @param Form $form
      * @param      $action
      * @param      $isPost
      * @param null $objectId
@@ -176,7 +177,8 @@ class RecommenderController extends AbstractStandardFormController
                     'Recommender'
                 )->getIntegrationSettings()->getFeatureSettings();
                 if (!empty($featureSettings['show_recommender_testbench'])) {
-                    $viewParameters['tester'] = $this->get('mautic.recommender.contact.search')->renderForm($args['objectId'], $this);
+                    //$viewParameters['tester'] = $this->get('mautic.recommender.contact.search')->renderForm($args['objectId'], $this);
+                    $viewParameters['tester'] = $this->renderView('MauticRecommenderBundle:Recommender:example.html.php', $this->get('mautic.recommender.contact.search')->getViewParameters($args['entity']->getId()));
                 }
                 break;
         }
@@ -211,7 +213,7 @@ class RecommenderController extends AbstractStandardFormController
                 ]
             );
         } catch (\Exception $e) {
-            $logger->log('error', $e->getMessage().' with params '.$params);
+            $logger->log('debug', $e->getMessage().' with params '.$params);
             $error = $e->getMessage();
 
             return new JsonResponse(

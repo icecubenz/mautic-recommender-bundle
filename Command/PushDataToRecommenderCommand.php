@@ -18,15 +18,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class PushDataToRecommenderCommand extends ContainerAwareCommand
 {
     /**
-     * @var SymfonyStyle
-     */
-    private $io;
-
-    /**
      * @var array
      */
-    private $types = ['events', 'items'];
-
+    private $types   = ['events', 'items'];
     private $actions = [];
 
     /**
@@ -53,7 +47,7 @@ class PushDataToRecommenderCommand extends ContainerAwareCommand
             '-l',
             InputOption::VALUE_OPTIONAL,
             sprintf(
-                "Set batch size of contacts to process per round. Defaults to %s.",
+                'Set batch size of contacts to process per round. Defaults to %s.',
                 RecommenderIntegration::IMPORT_BATCH
             )
         );
@@ -62,7 +56,7 @@ class PushDataToRecommenderCommand extends ContainerAwareCommand
             '--timeout',
             null,
             InputOption::VALUE_OPTIONAL,
-            sprintf("Set delay to ignore item to update. Default %s.", RecommenderIntegration::IMPORT_TIMEOUT)
+            sprintf('Set delay to ignore item to update. Default %s.', RecommenderIntegration::IMPORT_TIMEOUT)
         );
 
         parent::configure();
@@ -141,7 +135,7 @@ class PushDataToRecommenderCommand extends ContainerAwareCommand
             );
         }
 
-        if ($type !== 'contacts') {
+        if ('contacts' !== $type) {
             if (empty($file)) {
                 return $output->writeln(
                     sprintf(
@@ -152,7 +146,17 @@ class PushDataToRecommenderCommand extends ContainerAwareCommand
                 );
             }
 
-            $items = \JsonMachine\JsonMachine::fromFile($file);
+            if (!empty($input->getOption('batch-limit')) && intval($input->getOption('batch-limit'))) {
+                $batchLimit = intval($input->getOption('batch-limit'));
+            } elseif (!empty($featureSettings['batch_limit']) && intval($featureSettings['batch_limit'])) {
+                $batchLimit = intval($featureSettings['batch_limit']);
+            } else {
+                $batchLimit = RecommenderIntegration::IMPORT_BATCH;
+            }
+
+            $data = $this->getContentFromUrl($file);
+
+            $items = \JsonMachine\JsonMachine::fromString($data);
 
             if (empty($items) || ![$items]) {
                 return $output->writeln(
@@ -164,14 +168,6 @@ class PushDataToRecommenderCommand extends ContainerAwareCommand
                     )
                 );
             }
-        }
-
-        if (!empty($input->getOption('batch-limit')) && intval($input->getOption('batch-limit'))) {
-            $batchLimit = intval($input->getOption('batch-limit'));
-        } elseif (!empty($featureSettings['batch_limit']) && intval($featureSettings['batch_limit'])) {
-            $batchLimit = intval($featureSettings['batch_limit']);
-        } else {
-            $batchLimit = RecommenderIntegration::IMPORT_BATCH;
         }
 
         if (!empty($input->getOption('timeout'))) {
@@ -188,7 +184,7 @@ class PushDataToRecommenderCommand extends ContainerAwareCommand
         switch ($type) {
             case 'items':
                 $apiCommands->importItems($items, $batchLimit, $timeout, $output);
-                $items = \JsonMachine\JsonMachine::fromFile($file);
+                $items = \JsonMachine\JsonMachine::fromString($data);
                 $apiCommands->deactivateMissingItems($items, $output);
                 break;
             case 'events':
@@ -206,6 +202,23 @@ class PushDataToRecommenderCommand extends ContainerAwareCommand
                 $output->writeln('Imported '.$counter.' events');
                 break;
         }
+    }
+
+    /**
+     * @param $url
+     *
+     * @return bool|string
+     */
+    private function getContentFromUrl($url)
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        $data = curl_exec($ch);
+        curl_close($ch);
+
+        return $data;
     }
 
     /**

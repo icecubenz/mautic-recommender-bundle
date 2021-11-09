@@ -11,6 +11,7 @@
 namespace MauticPlugin\MauticRecommenderBundle\Filter\Query;
 
 use Doctrine\DBAL\Query\QueryBuilder;
+use Mautic\CoreBundle\Helper\DateTimeHelper;
 use Mautic\LeadBundle\Segment\ContactSegmentFilter;
 use Mautic\LeadBundle\Segment\Query\Filter\BaseFilterQueryBuilder;
 
@@ -24,6 +25,13 @@ class RecommenderFilterQueryBuilder extends BaseFilterQueryBuilder
         }
         if (!is_array($parameters)) {
             $type = $this->transformType($type, $filterParameters);
+
+            switch ($filter->getOperator()) {
+                case 'regexp':
+                case 'notRegexp':
+                $filterParameters = str_replace('\|', '|', preg_quote($filterParameters));
+                    break;
+            }
 
             return $queryBuilder->setParameter($parameters, $filterParameters, $type);
         }
@@ -43,22 +51,24 @@ class RecommenderFilterQueryBuilder extends BaseFilterQueryBuilder
     {
         switch ($type) {
             case 'select':
+            case 'multiselect':
                 return 'string';
-            break;
             case 'bool':
                 $parameter = (bool) $parameter;
 
                 return 'boolean';
-            break;
             case 'int':
             case 'number':
                 $parameter = (int) $parameter;
 
                 return 'integer';
-                break;
+            case 'date':
+                $dateTimeHelper = new DateTimeHelper($parameter);
+                $parameter      = $dateTimeHelper->getUtcDateTime();
+
+                return 'datetime';
             default:
                 return  $type;
-                break;
         }
     }
 }

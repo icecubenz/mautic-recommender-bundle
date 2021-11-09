@@ -8,7 +8,7 @@
  *
  * @license     GNU/GPLv3 http://www.gnu.org/licenses/gpl-3.0.html
  */
-if ($tmpl == 'index') {
+if ('index' == $tmpl) {
     $view->extend('MauticRecommenderBundle:RecommenderTemplate:index.html.php');
 }
 /* @var \MauticPlugin\MauticRecommenderBundle\Entity\RecommenderTemplate[] $items */
@@ -89,7 +89,7 @@ if ($tmpl == 'index') {
                             'MauticCoreBundle:Helper:publishstatus_icon.html.php',
                             ['item' => $item, 'model' => 'recommender.recommender']
                         ); ?>
-                        <a href="<?php echo $view['router']->generate(
+                        <a href="<?php echo $view['router']->url(
                             'mautic_recommender_template_action',
                             ['objectAction' => 'view', 'objectId' => $item->getId()]
                         ); ?>" data-toggle="ajax">
@@ -110,7 +110,7 @@ if ($tmpl == 'index') {
                     'page'       => $page,
                     'limit'      => $limit,
                     'menuLinkId' => 'mautic_recommender_template_index',
-                    'baseUrl'    => $view['router']->generate('mautic_recommender_template_index'),
+                    'baseUrl'    => $view['router']->url('mautic_recommender_template_index'),
                     'sessionVar' => 'recommender',
                 ]
             ); ?>
